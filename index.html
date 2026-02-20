@@ -1885,7 +1885,6 @@ textarea { resize:vertical; min-height:70px; }
   .drawer.on { transform: translateY(0); }
   .drawer .drawer-ft { bottom: 0; }
   .drawer .drawer-tab-panel { padding-bottom: 80px; }
-  .d-metrics { grid-template-columns: repeat(3,1fr); }
   .drawer-tabs { overflow-x: auto; }
   .drawer-tab { font-size: 9px; padding: 8px 6px; white-space: nowrap; }
 
@@ -1966,6 +1965,7 @@ textarea { resize:vertical; min-height:70px; }
   .drawer .drawer-tab-panel {
     padding-bottom: calc(80px + 60px + env(safe-area-inset-bottom));
   }
+}
 
 /* Touch — ensure minimum 44px tap targets */
 @media (hover: none) and (pointer: coarse) {
@@ -1989,7 +1989,6 @@ textarea { resize:vertical; min-height:70px; }
   backdrop-filter: blur(16px);
   border-top: 1px solid var(--border);
   z-index: 150;
-  display: none;
   grid-template-columns: repeat(5, 1fr);
   align-items: center;
 }
