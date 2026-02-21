@@ -2221,7 +2221,7 @@ textarea { resize:vertical; min-height:70px; }
       <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--accent);margin-bottom:4px">☁ Set up cloud sync</div>
       <div style="font-size:11px;color:var(--muted)">Connect Supabase to sync your data across devices and back it up to the cloud.</div>
     </div>
-    <button class="btn-primary" onclick="document.getElementById('firstRunBanner').style.display='none';openSyncSettings();" style="white-space:nowrap;flex-shrink:0;-webkit-tap-highlight-color:transparent">Set Up Sync →</button>
+    <button class="btn-primary" onclick="setupSync()" style="white-space:nowrap;flex-shrink:0;-webkit-tap-highlight-color:transparent">Set Up Sync →</button>
   </div>
   <div class="alerts-banner" id="alertBanner">
     <div class="alert-title">⚠ Restock Alert</div>
@@ -3405,18 +3405,27 @@ function openSyncSettings() {
   document.getElementById('sync_key').value = localStorage.getItem(SYNC_KEYS.key) || '';
   document.getElementById('sync_account_id').value = getAccountId();
   updateSyncStatusBar('', null);
-  document.getElementById('syncOv').classList.add('on');
+  const ov = document.getElementById('syncOv');
+  ov.classList.add('on');
+  ov.style.display = 'flex';
 }
-
+function closeSyncSettings() {
+  const ov = document.getElementById('syncOv');
+  ov.classList.remove('on');
+  ov.style.display = '';
+}
+function setupSync() {
+  const b = document.getElementById('firstRunBanner');
+  if (b) b.style.display = 'none';
+  openSyncSettings();
+}
 function checkFirstRun() {
   const banner = document.getElementById('firstRunBanner');
   if (!banner) return;
   const hasUrl = !!localStorage.getItem(SYNC_KEYS.url);
   banner.style.display = hasUrl ? 'none' : 'flex';
 }
-// Run after page loads
 window.addEventListener('load', checkFirstRun);
-function closeSyncSettings() { document.getElementById('syncOv').classList.remove('on'); }
 
 function saveSyncSettings() {
   const url = document.getElementById('sync_url').value.trim();
