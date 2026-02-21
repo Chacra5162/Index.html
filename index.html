@@ -4150,7 +4150,7 @@ function toggleSel(id,cb){cb.checked?sel.add(id):sel.delete(id);cb.closest('tr')
 function toggleAll(cb){document.querySelectorAll('#invBody tr[data-id]').forEach(r=>{const id=r.dataset.id;const rc=r.querySelector('input[type=checkbox]');if(cb.checked){sel.add(id);rc.checked=true;r.classList.add('sel');}else{sel.delete(id);rc.checked=false;r.classList.remove('sel');}});syncBulk();}
 function clearSel(){sel.clear();document.getElementById('selAll').checked=false;renderInv();}
 function syncBulk(){const b=document.getElementById('bulkBar');b.classList.toggle('on',sel.size>0);document.getElementById('bulkCnt').textContent=sel.size+' selected';}
-function bulkDel(){if(!sel.size)return;if(!confirm(`Delete ${sel.size} item(s)?`))return;const ids=[...sel];inv=inv.filter(i=>!sel.has(i.id));sel.clear();save();refresh();toast('Deleted ✓');pushDeleteToCloud('ft_inventory',ids);}
+async function bulkDel(){if(!sel.size)return;if(!confirm(`Delete ${sel.size} item(s)?`))return;const ids=[...sel];inv=inv.filter(i=>!sel.has(i.id));sel.clear();save();refresh();toast('Deleted ✓');await pushDeleteToCloud('ft_inventory',ids);autoSync();}
 function bulkSold(){if(!sel.size)return;const ok=[...sel].filter(id=>{const it=inv.find(i=>i.id===id);return it&&it.qty>0;});if(!ok.length){toast('No sellable items selected',true);return;}if(!confirm(`Record sale for ${ok.length} item(s) at list price?`))return;const today=new Date().toISOString().split('T')[0];for(const id of ok){const it=inv.find(i=>i.id===id);sales.push({id:uid(),itemId:id,price:it.price,qty:1,fees:it.fees||0,ship:it.ship||0,date:today});it.qty=Math.max(0,(it.qty||0)-1);}sel.clear();save();refresh();toast(`${ok.length} sale(s) recorded ✓`);}
 
 // SUBCATEGORY SYNC HELPERS
@@ -4296,7 +4296,7 @@ function saveDrawer(){
   Object.assign(item, getDimsFromForm('d'));
   save(); closeDrawer(); refresh(); _sfx.edit(); toast('Changes saved ✓');
 }
-function delCurrent(){const item=inv.find(i=>i.id===activeDrawId);if(!confirm(`Delete "${item?.name}"?`))return;const id=activeDrawId;inv=inv.filter(i=>i.id!==id);save();closeDrawer();refresh();toast('Item deleted');pushDeleteToCloud('ft_inventory',[id]);}
+async function delCurrent(){const item=inv.find(i=>i.id===activeDrawId);if(!confirm(`Delete "${item?.name}"?`))return;const id=activeDrawId;inv=inv.filter(i=>i.id!==id);save();closeDrawer();refresh();toast('Item deleted');await pushDeleteToCloud('ft_inventory',[id]);autoSync();}
 
 // ADD MODAL
 function openAddModal(){document.getElementById('addOv').classList.add('on');}
@@ -4736,13 +4736,14 @@ function addExpense() {
   _sfx.expense(); toast('Expense added ✓');
 }
 
-function delExpense(id) {
+async function delExpense(id) {
   if (!confirm('Delete this expense?')) return;
   expenses = expenses.filter(e => e.id !== id);
   save();
   renderExpenses();
   toast('Expense deleted');
-  pushDeleteToCloud('ft_expenses',[id]);
+  await pushDeleteToCloud('ft_expenses',[id]);
+  autoSync();
 }
 
 function renderExpenses() {
@@ -5054,17 +5055,19 @@ function goToAddExpense() {
 }
 
 // ── DELETE SALE (restores stock)
-function delSale(id){
+async function delSale(id){
   if(!confirm('Remove this sale? Stock will be restored.'))return;
   const s=sales.find(x=>x.id===id);
   if(s){const it=inv.find(i=>i.id===s.itemId);if(it)it.qty+=(s.qty||0);}
   sales=sales.filter(x=>x.id!==id);
   save(); refresh(); renderSalesView(); toast('Sale removed, stock restored');
-  pushDeleteToCloud('ft_sales',[id]);
+  // Delete from cloud first, then let autoSync push the updated inventory
+  await pushDeleteToCloud('ft_sales',[id]);
+  autoSync();
 }
 
 // DELETE ITEM
-function delItem(id){const item=inv.find(i=>i.id===id);if(!confirm(`Delete "${item?.name}"?`))return;inv=inv.filter(i=>i.id!==id);sel.delete(id);save();refresh();toast('Item deleted');pushDeleteToCloud('ft_inventory',[id]);}
+async function delItem(id){const item=inv.find(i=>i.id===id);if(!confirm(`Delete "${item?.name}"?`))return;inv=inv.filter(i=>i.id!==id);sel.delete(id);save();refresh();toast('Item deleted');await pushDeleteToCloud('ft_inventory',[id]);autoSync();}
 
 // EXPORT
 // ── BARCODES ────────────────────────────────────────────────────────────────
