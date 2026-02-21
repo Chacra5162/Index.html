@@ -3392,8 +3392,8 @@ async function syncNow() {
 function autoSync() {
   if (!_sb || !_currentUser) return;
   clearTimeout(_syncDebounce);
-  setSyncStatus('syncing');
   _syncDebounce = setTimeout(async () => {
+    setSyncStatus('syncing');
     try {
       await pushToCloud();
       setSyncStatus('connected');
@@ -3414,8 +3414,8 @@ function stopPoll() {
 async function pollOnce() {
   if (!_sb || !_currentUser) return;
   try {
-    await pullFromCloud();
-    refresh();
+    const changed = await pullFromCloud();
+    if (changed) refresh();
     setSyncStatus('connected');
   } catch(e) {
     setSyncStatus('error', e.message);
@@ -6792,3 +6792,4 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
+
