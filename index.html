@@ -2156,9 +2156,9 @@ textarea { resize:vertical; min-height:70px; }
   </div>
   <div class="header-right">
     <div class="date-badge" id="currentDate"></div>
-    <button class="sync-dot-btn" id="syncDotBtn" onclick="openSyncSettings()" title="Sync settings">
+    <button class="sync-dot-btn" id="syncDotBtn" onclick="openAccountMenu()" title="Account">
       <span class="sync-dot" id="syncDot"></span>
-      <span class="sync-dot-lbl" id="syncDotLbl">Local only</span>
+      <span class="sync-dot-lbl" id="syncDotLbl">Signing in…</span>
     </button>
     <button class="fs-btn" onclick="toggleFsPopover()" title="Adjust text size" id="fsSizeBtn">Aᴬ</button>
     <button class="btn-secondary" onclick="openPriceResearch()" title="Look up prices by UPC barcode">🔍 Prices</button>
@@ -2215,14 +2215,6 @@ textarea { resize:vertical; min-height:70px; }
 
 <!-- VIEW: DASHBOARD -->
 <div id="view-dashboard" class="view active">
-  <!-- First-run sync banner — shown when no Supabase credentials saved -->
-  <div id="firstRunBanner" style="display:none;margin-bottom:14px;padding:14px 18px;background:rgba(200,255,87,0.08);border:1px solid rgba(200,255,87,0.3);border-radius:4px;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-    <div>
-      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--accent);margin-bottom:4px">☁ Set up cloud sync</div>
-      <div style="font-size:11px;color:var(--muted)">Connect Supabase to sync your data across devices and back it up to the cloud.</div>
-    </div>
-    <button class="btn-primary" onclick="setupSync()" style="white-space:nowrap;flex-shrink:0;-webkit-tap-highlight-color:transparent">Set Up Sync →</button>
-  </div>
   <div class="alerts-banner" id="alertBanner">
     <div class="alert-title">⚠ Restock Alert</div>
     <div class="alert-items" id="alertItems"></div>
@@ -2702,74 +2694,80 @@ textarea { resize:vertical; min-height:70px; }
 </div>
 
 <!-- SYNC SETTINGS MODAL -->
-<div class="overlay" id="syncOv">
-  <div class="modal" style="max-width:480px">
-    <div class="modal-hd">
-      <div class="modal-ttl">☁ Cloud Sync — Supabase</div>
-      <button class="modal-x" onclick="closeSyncSettings()">×</button>
+<!-- AUTH MODAL — Login / Sign Up -->
+<div class="overlay" id="authOv" style="display:flex">
+  <div class="modal" style="max-width:400px;width:92vw">
+    <div class="modal-hd" style="border-bottom:none;padding-bottom:8px">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <div class="modal-ttl" style="font-size:20px">FlipTrack</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">Reseller Dashboard</div>
+      </div>
     </div>
-    <div class="modal-bd" style="padding:20px 24px">
-
-      <!-- Status bar -->
-      <div id="syncStatusBar" style="display:none;margin-bottom:16px;padding:10px 14px;font-size:12px;font-family:'DM Mono',monospace;border-radius:2px"></div>
-
-      <!-- Account ID -->
-      <div class="fgrp" style="margin-bottom:14px">
-        <label style="display:flex;align-items:center;justify-content:space-between">
-          <span>Account ID <span style="color:var(--muted);font-weight:400">(your unique sync key)</span></span>
-          <button type="button" onclick="regenAccountId()" style="background:none;border:none;color:var(--muted);font-size:10px;cursor:pointer;text-decoration:underline;padding:0">Regenerate</button>
-        </label>
-        <div style="display:flex;gap:8px">
-          <input type="text" id="sync_account_id" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="none"
-            style="font-family:'DM Mono',monospace;font-size:11px;flex:1" placeholder="Paste your Account ID from another device">
-          <button type="button" onclick="copyAccountId()" class="btn-secondary" style="font-size:11px;padding:6px 10px;white-space:nowrap">Copy</button>
-        </div>
-        <div style="font-size:10px;color:var(--muted);margin-top:5px">
-          <strong style="color:var(--accent)">New device?</strong> Paste the Account ID from your other device here before saving — this is what links them to the same data. If this is your first device, just leave it as-is and copy it for later.
-        </div>
+    <div class="modal-bd" style="padding:8px 24px 24px">
+      <!-- Tab switcher -->
+      <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px">
+        <button id="authTabLogin" onclick="switchAuthTab('login')"
+          style="flex:1;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--text);font-family:'Syne',sans-serif;font-weight:700;font-size:12px;padding:10px;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px">
+          Sign In
+        </button>
+        <button id="authTabSignup" onclick="switchAuthTab('signup')"
+          style="flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:'Syne',sans-serif;font-weight:700;font-size:12px;padding:10px;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px">
+          Create Account
+        </button>
       </div>
 
-      <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:14px">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px">Supabase Connection</div>
-        <div class="fgrp" style="margin-bottom:10px">
-          <label>Project URL</label>
-          <input type="url" id="sync_url" placeholder="https://xxxxxxxxxxxx.supabase.co"
-            spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="none" inputmode="url">
-        </div>
-        <div class="fgrp" style="margin-bottom:0">
-          <label>Anon / Public API Key</label>
-          <div style="display:flex;gap:6px;align-items:center">
-            <input type="password" id="sync_key" placeholder="eyJhbGciOiJIUzI1NiIs…"
-              spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="none"
-              style="font-size:11px;font-family:'DM Mono',monospace;flex:1">
-            <button type="button" id="sync_key_toggle" onclick="toggleSyncKeyVis()"
-              style="background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:12px;padding:6px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">
-              Show
-            </button>
-          </div>
-          <div style="font-size:10px;color:var(--muted);margin-top:4px">Paste your full anon/public key from Supabase → Settings → API</div>
-        </div>
+      <div id="authErr" style="display:none;margin-bottom:14px;padding:10px 14px;background:rgba(255,71,87,0.1);border:1px solid rgba(255,71,87,0.3);font-size:12px;font-family:'DM Mono',monospace;color:var(--danger)"></div>
+      <div id="authOk"  style="display:none;margin-bottom:14px;padding:10px 14px;background:rgba(87,255,154,0.08);border:1px solid rgba(87,255,154,0.3);font-size:12px;font-family:'DM Mono',monospace;color:var(--good)"></div>
+
+      <div class="fgrp" style="margin-bottom:12px">
+        <label>Email</label>
+        <input type="email" id="authEmail" placeholder="you@example.com"
+          autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false"
+          style="width:100%;box-sizing:border-box;-webkit-appearance:none"
+          onkeydown="if(event.key==='Enter')authSubmit()">
+      </div>
+      <div class="fgrp" style="margin-bottom:20px">
+        <label>Password</label>
+        <input type="password" id="authPass" placeholder="••••••••"
+          autocomplete="current-password"
+          style="width:100%;box-sizing:border-box;-webkit-appearance:none"
+          onkeydown="if(event.key==='Enter')authSubmit()">
       </div>
 
-      <!-- Action buttons -->
-      <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:20px">
-        <div style="font-size:10px;color:var(--muted);margin-bottom:12px">
-          Need help? See the <strong style="color:var(--text)">FLIPTRACK-SYNC-SETUP.md</strong> file for step-by-step Supabase setup instructions.
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button type="button" class="btn-secondary" onclick="testConnection()" style="font-size:12px">Test Connection</button>
-          <button type="button" class="btn-secondary" onclick="syncNow()" style="font-size:12px">↺ Sync Now</button>
-          <button type="button" class="btn-danger" onclick="disconnectSync()" style="font-size:12px;margin-left:auto">Disconnect</button>
-        </div>
-      </div>
+      <button class="btn-primary" onclick="authSubmit()" id="authSubmitBtn"
+        style="width:100%;font-size:14px;padding:12px">Sign In</button>
 
-      <!-- Save & Connect moved INTO scrollable body so iOS keyboard never hides it -->
-      <div style="display:flex;gap:10px;justify-content:flex-end">
-        <button class="btn-secondary" onclick="closeSyncSettings()">Cancel</button>
-        <button class="btn-primary" onclick="saveSyncSettings()">Save &amp; Connect</button>
+      <div id="authForgotWrap" style="margin-top:12px;text-align:center">
+        <button onclick="authForgotPassword()"
+          style="background:none;border:none;color:var(--muted);font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;text-decoration:underline">
+          Forgot password?
+        </button>
       </div>
-
     </div>
+  </div>
+</div>
+
+<!-- ACCOUNT MENU -->
+<div class="overlay" id="accountMenuOv" style="display:none;align-items:flex-start;justify-content:flex-end;padding:70px 16px 0">
+  <div style="background:var(--surface2);border:1px solid var(--border);min-width:220px;box-shadow:0 8px 32px rgba(0,0,0,0.4)">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border)">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Signed in as</div>
+      <div id="accountMenuEmail" style="font-size:12px;font-family:'DM Mono',monospace;color:var(--text)"></div>
+    </div>
+    <button onclick="syncNow();closeAccountMenu()"
+      style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 16px;background:none;border:none;border-bottom:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;text-align:left">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+      Sync Now
+    </button>
+    <button onclick="authSignOut()"
+      style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 16px;background:none;border:none;color:var(--danger);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;text-align:left">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </button>
+    <button onclick="closeAccountMenu()"
+      style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 16px;background:none;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;text-align:left">
+      Cancel
+    </button>
   </div>
 </div>
 
@@ -2965,13 +2963,13 @@ textarea { resize:vertical; min-height:70px; }
 
 <!-- More menu popup -->
 <div class="bnav-more-popup" id="bnavMorePopup" style="display:none">
-  <button class="bnav-more-item" id="bn-more-sync" onclick="mobileSyncNow();closeBnavMore()">
+  <button class="bnav-more-item" id="bn-more-sync" onclick="syncNow();closeBnavMore()">
     <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
     Sync Now
   </button>
-  <button class="bnav-more-item" onclick="openSyncSettings();closeBnavMore()">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-    Sync Settings
+  <button class="bnav-more-item" onclick="openAccountMenu();closeBnavMore()">
+    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Account
   </button>
   <button class="bnav-more-item" onclick="openPriceResearch();closeBnavMore()">
     <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
@@ -3170,50 +3168,129 @@ const SUBSUBCATS = Object.fromEntries(
   )
 );
 
-// ── SUPABASE SYNC ─────────────────────────────────────────────────────────────
+// ── SUPABASE AUTH + SYNC ──────────────────────────────────────────────────────
 
-let _sb = null;          // Supabase client instance
+const SB_URL = 'https://gqructzvlkafclooybnc.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxcnVjdHp2bGthZmNsb295Ym5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzODIyNTAsImV4cCI6MjA4Njk1ODI1MH0.-H5p1Oq-ImveB636xgWI-Rrc23wzj7-_Vps6xeHrHtA';
+
+let _sb          = null;
+let _currentUser = null;
 let _syncDebounce = null;
-let _pollTimer    = null; // background poll handle
-
-const SYNC_KEYS = {
-  url:       'ft3_sync_url',
-  key:       'ft3_sync_key',
-  accountId: 'ft3_account_id',
-};
+let _pollTimer    = null;
+let _authTab      = 'login'; // 'login' | 'signup'
 
 function getAccountId() {
-  let id = localStorage.getItem(SYNC_KEYS.accountId);
-  if (!id) { id = crypto.randomUUID(); localStorage.setItem(SYNC_KEYS.accountId, id); }
-  return id;
+  return _currentUser ? _currentUser.id : null;
 }
 
-function initSupabaseClient() {
-  const url = localStorage.getItem(SYNC_KEYS.url);
-  const key = localStorage.getItem(SYNC_KEYS.key);
-  if (!url || !key) { _sb = null; setSyncStatus('disconnected'); return false; }
-  if (typeof supabase === 'undefined') {
-    _sb = null; setSyncStatus('error', 'Supabase library failed to load');
-    return false;
-  }
+// ── Auth UI ───────────────────────────────────────────────────────────────────
+
+function switchAuthTab(tab) {
+  _authTab = tab;
+  const isLogin = tab === 'login';
+  document.getElementById('authTabLogin').style.borderBottomColor  = isLogin ? 'var(--accent)' : 'transparent';
+  document.getElementById('authTabSignup').style.borderBottomColor = isLogin ? 'transparent' : 'var(--accent)';
+  document.getElementById('authTabLogin').style.color  = isLogin ? 'var(--text)' : 'var(--muted)';
+  document.getElementById('authTabSignup').style.color = isLogin ? 'var(--muted)' : 'var(--text)';
+  document.getElementById('authSubmitBtn').textContent = isLogin ? 'Sign In' : 'Create Account';
+  document.getElementById('authForgotWrap').style.display = isLogin ? '' : 'none';
+  setAuthMsg('', '');
+}
+
+function setAuthMsg(msg, type) {
+  const err = document.getElementById('authErr');
+  const ok  = document.getElementById('authOk');
+  err.style.display = 'none';
+  ok.style.display  = 'none';
+  if (!msg) return;
+  if (type === 'ok') { ok.textContent = msg;  ok.style.display  = ''; }
+  else               { err.textContent = msg; err.style.display = ''; }
+}
+
+async function authSubmit() {
+  const email = document.getElementById('authEmail').value.trim();
+  const pass  = document.getElementById('authPass').value;
+  const btn   = document.getElementById('authSubmitBtn');
+  if (!email || !pass) { setAuthMsg('Please enter your email and password.', 'err'); return; }
+  btn.textContent = '…';
+  btn.disabled = true;
+  setAuthMsg('', '');
   try {
-    _sb = supabase.createClient(url, key);
-    setSyncStatus('connected');
-    return true;
+    if (_authTab === 'login') {
+      const { error } = await _sb.auth.signInWithPassword({ email, password: pass });
+      if (error) throw error;
+    } else {
+      const { error } = await _sb.auth.signUp({ email, password: pass });
+      if (error) throw error;
+      setAuthMsg('Account created! Check your email to confirm, then sign in.', 'ok');
+      switchAuthTab('login');
+      btn.textContent = 'Sign In';
+      btn.disabled = false;
+      return;
+    }
   } catch(e) {
-    _sb = null; setSyncStatus('error', 'Failed to initialise client');
-    return false;
+    setAuthMsg(e.message, 'err');
+    btn.textContent = _authTab === 'login' ? 'Sign In' : 'Create Account';
+    btn.disabled = false;
   }
 }
+
+async function authForgotPassword() {
+  const email = document.getElementById('authEmail').value.trim();
+  if (!email) { setAuthMsg('Enter your email address first.', 'err'); return; }
+  const { error } = await _sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin });
+  if (error) setAuthMsg(error.message, 'err');
+  else setAuthMsg('Password reset email sent — check your inbox.', 'ok');
+}
+
+async function authSignOut() {
+  closeAccountMenu();
+  await _sb.auth.signOut();
+  _currentUser = null;
+  inv = []; sales = []; expenses = [];
+  save(); refresh();
+  setSyncStatus('disconnected');
+  showAuthModal();
+}
+
+function showAuthModal() {
+  const ov = document.getElementById('authOv');
+  ov.style.display = 'flex';
+  document.getElementById('authEmail').value = '';
+  document.getElementById('authPass').value  = '';
+  setAuthMsg('', '');
+}
+
+function hideAuthModal() {
+  document.getElementById('authOv').style.display = 'none';
+}
+
+function openAccountMenu() {
+  const el = document.getElementById('accountMenuEmail');
+  if (el && _currentUser) el.textContent = _currentUser.email;
+  const ov = document.getElementById('accountMenuOv');
+  ov.style.display = 'flex';
+}
+
+function closeAccountMenu() {
+  document.getElementById('accountMenuOv').style.display = 'none';
+}
+
+// Close account menu on backdrop click
+document.getElementById('accountMenuOv').addEventListener('click', function(e) {
+  if (e.target === this) closeAccountMenu();
+});
+
+// ── Sync status dot ───────────────────────────────────────────────────────────
 
 function setSyncStatus(state, msg) {
-  const dot  = document.getElementById('syncDot');
-  const lbl  = document.getElementById('syncDotLbl');
+  const dot = document.getElementById('syncDot');
+  const lbl = document.getElementById('syncDotLbl');
   if (!dot || !lbl) return;
   dot.className = 'sync-dot';
   const now = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
   const map = {
-    disconnected: { cls: '',          txt: 'Local only' },
+    disconnected: { cls: '',          txt: 'Offline' },
     connected:    { cls: 'connected', txt: `Synced ${now}` },
     syncing:      { cls: 'syncing',   txt: 'Syncing…' },
     error:        { cls: 'error',     txt: msg || 'Sync error' },
@@ -3225,8 +3302,8 @@ function setSyncStatus(state, msg) {
 
 // ── Push local → Supabase ────────────────────────────────────────────────────
 async function pushToCloud() {
-  if (!_sb) return;
-  const accountId = getAccountId();
+  if (!_sb || !_currentUser) return;
+  const accountId = _currentUser.id;
 
   const invRows = inv.map(i => {
     const d = { ...i };
@@ -3244,7 +3321,6 @@ async function pushToCloud() {
   ]);
   if (r1.error || r2.error) throw new Error((r1.error || r2.error).message);
 
-  // Expenses — separate so missing table doesn't break the rest
   try {
     const expRows = expenses.map(e => ({
       id: e.id, account_id: accountId, data: e, updated_at: new Date().toISOString()
@@ -3255,9 +3331,9 @@ async function pushToCloud() {
   }
 }
 
-// Immediately delete one or more rows from Supabase when user removes data
+// Immediately delete rows from Supabase
 async function pushDeleteToCloud(table, ids) {
-  if (!_sb || !ids.length) return;
+  if (!_sb || !_currentUser || !ids.length) return;
   try {
     await _sb.from(table).delete().in('id', ids);
   } catch(e) {
@@ -3265,12 +3341,11 @@ async function pushDeleteToCloud(table, ids) {
   }
 }
 
-// ── Pull Supabase → local (merge, remote wins if newer) ─────────────────────
+// ── Pull Supabase → local ────────────────────────────────────────────────────
 async function pullFromCloud() {
-  if (!_sb) return false;
-  const accountId = getAccountId();
+  if (!_sb || !_currentUser) return false;
+  const accountId = _currentUser.id;
 
-  // Inventory + sales are always required
   const [
     { data: remoteInv,   error: e1 },
     { data: remoteSales, error: e2 },
@@ -3280,31 +3355,16 @@ async function pullFromCloud() {
   ]);
   if (e1 || e2) throw new Error((e1 || e2).message);
 
-  // Expenses — optional; table may not exist yet
   let remoteExp = null;
   try {
     const { data, error } = await _sb.from('ft_expenses').select('id, data, updated_at').eq('account_id', accountId);
     if (!error) remoteExp = data;
-  } catch(e) {
-    // ft_expenses table not created yet — skip silently
-  }
+  } catch(_) {}
 
-  // Remote is authoritative — replace local with remote data.
-  // (Deletions on another device are reflected by the row simply not existing in remote.)
-  if (remoteInv) {
-    inv = remoteInv.map(r => r.data).filter(Boolean);
-  }
+  if (remoteInv)  inv      = remoteInv.map(r => r.data).filter(Boolean);
+  if (remoteSales) sales   = remoteSales.map(r => r.data).filter(Boolean);
+  if (remoteExp)  expenses = remoteExp.map(r => r.data).filter(Boolean);
 
-  if (remoteSales) {
-    sales = remoteSales.map(r => r.data).filter(Boolean);
-  }
-
-  // Expenses (only if table is available)
-  if (remoteExp) {
-    expenses = remoteExp.map(r => r.data).filter(Boolean);
-  }
-
-  // Persist merged result locally
   localStorage.setItem('ft3_inv',  JSON.stringify(inv));
   localStorage.setItem('ft3_sal',  JSON.stringify(sales));
   localStorage.setItem('ft3_exp',  JSON.stringify(expenses));
@@ -3313,26 +3373,23 @@ async function pullFromCloud() {
 
 // ── Full sync ────────────────────────────────────────────────────────────────
 async function syncNow() {
-  if (!_sb) { toast('Configure sync settings first', true); openSyncSettings(); return; }
+  if (!_sb || !_currentUser) return;
   setSyncStatus('syncing');
-  updateSyncStatusBar('Syncing…', 'info');
   try {
     await pullFromCloud();
     await pushToCloud();
     setSyncStatus('connected');
-    updateSyncStatusBar('Synced successfully · ' + new Date().toLocaleTimeString(), 'ok');
     refresh();
     toast('Synced ✓');
   } catch(e) {
     setSyncStatus('error', e.message);
-    updateSyncStatusBar('Sync failed: ' + e.message, 'err');
     toast('Sync failed: ' + e.message.slice(0,60), true);
   }
 }
 
-// Auto-sync: debounce 2s after a save
+// Auto-sync debounced 2s after save
 function autoSync() {
-  if (!_sb) return;
+  if (!_sb || !_currentUser) return;
   clearTimeout(_syncDebounce);
   setSyncStatus('syncing');
   _syncDebounce = setTimeout(async () => {
@@ -3345,46 +3402,35 @@ function autoSync() {
   }, 2000);
 }
 
-// ── Background poll: pull remote changes every 30s ───────────────────────────
-const POLL_INTERVAL = 30000; // 30 seconds
-
+// Background poll every 60s
+function startPoll() {
+  stopPoll();
+  _pollTimer = setInterval(pollOnce, 60000);
+}
+function stopPoll() {
+  if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+}
 async function pollOnce() {
-  if (!_sb) return;
+  if (!_sb || !_currentUser) return;
   try {
     await pullFromCloud();
     refresh();
     setSyncStatus('connected');
   } catch(e) {
-    console.warn('FlipTrack poll error:', e.message);
+    setSyncStatus('error', e.message);
   }
 }
 
-function startPoll() {
-  stopPoll();
-  if (!_sb) return;
-  _pollTimer = setInterval(pollOnce, POLL_INTERVAL);
-}
-
-function stopPoll() {
-  if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
-}
-
-// Pause polling when tab is hidden, resume when visible
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     stopPoll();
   } else {
-    if (_sb) {
-      pollOnce();   // immediate catch-up pull on tab focus
-      startPoll();
-    }
+    if (_sb && _currentUser) { pollOnce(); startPoll(); }
   }
 });
 
 async function mobileSyncNow() {
-  if (!_sb) { toast('Set up sync in settings first', true); openSyncSettings(); return; }
-  const btn = document.getElementById('mobileSyncBtn');
-  if (btn) btn.style.opacity = '0.4';
+  if (!_sb || !_currentUser) return;
   setSyncStatus('syncing');
   try {
     await pullFromCloud();
@@ -3394,123 +3440,42 @@ async function mobileSyncNow() {
   } catch(e) {
     setSyncStatus('error', e.message);
     toast('Sync failed: ' + e.message, true);
-  } finally {
-    if (btn) btn.style.opacity = '1';
   }
 }
 
-// ── Settings modal ────────────────────────────────────────────────────────────
-function openSyncSettings() {
-  document.getElementById('sync_url').value = localStorage.getItem(SYNC_KEYS.url) || '';
-  document.getElementById('sync_key').value = localStorage.getItem(SYNC_KEYS.key) || '';
-  document.getElementById('sync_account_id').value = getAccountId();
-  updateSyncStatusBar('', null);
-  const ov = document.getElementById('syncOv');
-  ov.classList.add('on');
-  ov.style.display = 'flex';
-}
-function closeSyncSettings() {
-  const ov = document.getElementById('syncOv');
-  ov.classList.remove('on');
-  ov.style.display = '';
-}
-function setupSync() {
-  const b = document.getElementById('firstRunBanner');
-  if (b) b.style.display = 'none';
-  openSyncSettings();
-}
-function checkFirstRun() {
-  const banner = document.getElementById('firstRunBanner');
-  if (!banner) return;
-  const hasUrl = !!localStorage.getItem(SYNC_KEYS.url);
-  banner.style.display = hasUrl ? 'none' : 'flex';
-}
-window.addEventListener('load', checkFirstRun);
+// ── Bootstrap auth on load ───────────────────────────────────────────────────
+async function initAuth() {
+  _sb = supabase.createClient(SB_URL, SB_KEY);
 
-function saveSyncSettings() {
-  const url = document.getElementById('sync_url').value.trim();
-  const key = document.getElementById('sync_key').value.trim();
-  const accountId = document.getElementById('sync_account_id').value.trim();
-  if (!url || !key) { updateSyncStatusBar('Please enter both URL and API key.', 'err'); return; }
-  if (accountId) localStorage.setItem(SYNC_KEYS.accountId, accountId);
-  localStorage.setItem(SYNC_KEYS.url, url);
-  localStorage.setItem(SYNC_KEYS.key, key);
-  if (initSupabaseClient()) {
-    updateSyncStatusBar('Connected! Performing initial sync…', 'ok');
-    const b = document.getElementById('firstRunBanner');
-    if (b) b.style.display = 'none';
-    syncNow().then(() => { startPoll(); closeSyncSettings(); });
-  } else {
-    updateSyncStatusBar('Failed to connect — check URL and key.', 'err');
-  }
+  // Listen for auth state changes
+  _sb.auth.onAuthStateChange(async (event, session) => {
+    if (session?.user) {
+      _currentUser = session.user;
+      hideAuthModal();
+      setSyncStatus('syncing');
+      const lbl = document.getElementById('syncDotLbl');
+      if (lbl) lbl.textContent = session.user.email.split('@')[0];
+      try {
+        await pullFromCloud();
+        refresh();
+        setSyncStatus('connected');
+        startPoll();
+      } catch(e) {
+        setSyncStatus('error', e.message);
+      }
+    } else {
+      _currentUser = null;
+      stopPoll();
+      setSyncStatus('disconnected');
+      showAuthModal();
+    }
+  });
+
+  // Check existing session
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) showAuthModal();
 }
 
-async function testConnection() {
-  const url = document.getElementById('sync_url').value.trim();
-  const key = document.getElementById('sync_key').value.trim();
-  if (!url || !key) { updateSyncStatusBar('Enter URL and key first.', 'err'); return; }
-  updateSyncStatusBar('Testing…', 'info');
-  try {
-    const testClient = supabase.createClient(url, key);
-    const { error } = await testClient.from('ft_inventory').select('id').limit(1);
-    if (error) throw error;
-    updateSyncStatusBar('✓ Connection successful! Tables are reachable.', 'ok');
-  } catch(e) {
-    const hint = e.message.includes('relation') ? ' — run the SQL setup from FLIPTRACK-SYNC-SETUP.md first.' : '';
-    updateSyncStatusBar('✗ ' + e.message + hint, 'err');
-  }
-}
-
-function disconnectSync() {
-  if (!confirm('Disconnect cloud sync? Local data is unaffected.')) return;
-  stopPoll();
-  localStorage.removeItem(SYNC_KEYS.url);
-  localStorage.removeItem(SYNC_KEYS.key);
-  _sb = null;
-  setSyncStatus('disconnected');
-  closeSyncSettings();
-  toast('Sync disconnected');
-}
-
-function regenAccountId() {
-  if (!confirm('Generate a new Account ID? Your data on other devices will no longer sync unless you update the ID there too.')) return;
-  const newId = crypto.randomUUID();
-  localStorage.setItem(SYNC_KEYS.accountId, newId);
-  document.getElementById('sync_account_id').value = newId;
-}
-
-function copyAccountId() {
-  navigator.clipboard?.writeText(document.getElementById('sync_account_id').value);
-  toast('Account ID copied');
-}
-
-function toggleSyncKeyVis() {
-  const inp = document.getElementById('sync_key');
-  const btn = document.getElementById('sync_key_toggle');
-  if (inp.type === 'password') {
-    inp.type = 'text';
-    btn.textContent = 'Hide';
-  } else {
-    inp.type = 'password';
-    btn.textContent = 'Show';
-  }
-}
-
-function updateSyncStatusBar(msg, type) {
-  const bar = document.getElementById('syncStatusBar');
-  if (!bar) return;
-  if (!msg) { bar.style.display = 'none'; return; }
-  const colors = {
-    ok:   'rgba(87,255,154,0.12)',
-    err:  'rgba(255,71,87,0.12)',
-    info: 'rgba(200,255,87,0.08)',
-  };
-  bar.style.display = 'block';
-  bar.style.background = colors[type] || colors.info;
-  bar.style.border = `1px solid ${type==='err'?'rgba(255,71,87,0.3)':type==='ok'?'rgba(87,255,154,0.3)':'var(--border)'}`;
-  bar.style.color = type === 'err' ? 'var(--danger)' : type === 'ok' ? 'var(--good)' : 'var(--muted2)';
-  bar.textContent = msg;
-}
 
 const save = () => {
   localStorage.setItem('ft3_inv', JSON.stringify(inv));
@@ -6809,17 +6774,10 @@ function renderPlatTags(item) {
 
 
 setDefaultExpDate();
-
 refresh();
 
-// Initialise Supabase sync on load
-initSupabaseClient();
-if (_sb) {
-  setSyncStatus('syncing');
-  pullFromCloud()
-    .then(() => { setSyncStatus('connected'); refresh(); startPoll(); })
-    .catch(e  => { setSyncStatus('error', e.message); });
-}
+// Boot auth system
+initAuth();
 </script>
 
 <!-- PWA Service Worker Registration -->
