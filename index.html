@@ -2216,12 +2216,12 @@ textarea { resize:vertical; min-height:70px; }
 <!-- VIEW: DASHBOARD -->
 <div id="view-dashboard" class="view active">
   <!-- First-run sync banner — shown when no Supabase credentials saved -->
-  <div id="firstRunBanner" style="display:none;margin-bottom:14px;padding:14px 18px;background:rgba(200,255,87,0.08);border:1px solid rgba(200,255,87,0.3);border-radius:4px;display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+  <div id="firstRunBanner" style="display:none;margin-bottom:14px;padding:14px 18px;background:rgba(200,255,87,0.08);border:1px solid rgba(200,255,87,0.3);border-radius:4px;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
     <div>
       <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--accent);margin-bottom:4px">☁ Set up cloud sync</div>
       <div style="font-size:11px;color:var(--muted)">Connect Supabase to sync your data across devices and back it up to the cloud.</div>
     </div>
-    <button class="btn-primary" onclick="openSyncSettings();document.getElementById('firstRunBanner').style.display='none'" style="white-space:nowrap;flex-shrink:0">Set Up Sync →</button>
+    <button class="btn-primary" onclick="document.getElementById('firstRunBanner').style.display='none';openSyncSettings();" style="white-space:nowrap;flex-shrink:0;-webkit-tap-highlight-color:transparent">Set Up Sync →</button>
   </div>
   <div class="alerts-banner" id="alertBanner">
     <div class="alert-title">⚠ Restock Alert</div>
