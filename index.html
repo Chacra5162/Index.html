@@ -3453,37 +3453,58 @@ async function mobileSyncNow() {
 async function initAuth() {
   _sb = supabase.createClient(SB_URL, SB_KEY);
 
-  // Listen for auth state changes
-  _sb.auth.onAuthStateChange(async (event, session) => {
+  // Only handle explicit user-triggered events — NOT INITIAL_SESSION (handled via getSession below)
+  _sb.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT') {
       _currentUser = null;
       stopPoll();
+      clearTimeout(_syncDebounce);
       setSyncStatus('disconnected');
       showAuthModal();
-      return;
-    }
-    if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
-      _currentUser = session.user;
-      hideAuthModal();
-      setSyncStatus('syncing');
-      const lbl = document.getElementById('syncDotLbl');
-      if (lbl) lbl.textContent = session.user.email.split('@')[0];
-      try {
-        await pullFromCloud();
-        refresh();
-        setSyncStatus('connected');
-        startPoll();
-      } catch(e) {
-        setSyncStatus('error', e.message);
+    } else if (event === 'SIGNED_IN' && session?.user) {
+      // New login (not page reload) — only start session if not already active
+      if (!_currentUser || _currentUser.id !== session.user.id) {
+        _startSession(session.user);
       }
+    } else if (session?.user) {
+      _currentUser = session.user; // TOKEN_REFRESHED etc — silently update ref
     }
-    // TOKEN_REFRESHED and other events: just update _currentUser silently
-    if (session?.user) _currentUser = session.user;
   });
 
-  // Check existing session
+  // Page load — check for existing session once, independently of onAuthStateChange
   const { data: { session } } = await _sb.auth.getSession();
-  if (!session) showAuthModal();
+  if (session?.user) {
+    await _startSession(session.user);
+  } else {
+    showAuthModal();
+  }
+}
+
+let _sessionStarting = false;
+
+async function _startSession(user) {
+  if (_sessionStarting) return; // prevent double-call from race
+  _sessionStarting = true;
+  _currentUser = user;
+  hideAuthModal();
+  const lbl = document.getElementById('syncDotLbl');
+  if (lbl) lbl.textContent = user.email.split('@')[0];
+  setSyncStatus('syncing');
+  try {
+    // 10 second timeout on pull to prevent infinite hang
+    await Promise.race([
+      pullFromCloud(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Sync timed out')), 10000))
+    ]);
+    refresh();
+    setSyncStatus('connected');
+    startPoll();
+  } catch(e) {
+    setSyncStatus('error', e.message);
+    toast('Sync error: ' + e.message.slice(0, 60), true);
+  } finally {
+    _sessionStarting = false;
+  }
 }
 
 
