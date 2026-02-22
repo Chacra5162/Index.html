@@ -3246,10 +3246,15 @@ async function authForgotPassword() {
 
 async function authSignOut() {
   closeAccountMenu();
-  await _sb.auth.signOut();
+  stopPoll();
+  clearTimeout(_syncDebounce);
   _currentUser = null;
+  await _sb.auth.signOut();
   inv = []; sales = []; expenses = [];
-  save(); refresh();
+  localStorage.removeItem('ft3_inv');
+  localStorage.removeItem('ft3_sal');
+  localStorage.removeItem('ft3_exp');
+  refresh();
   setSyncStatus('disconnected');
   showAuthModal();
 }
@@ -3450,7 +3455,14 @@ async function initAuth() {
 
   // Listen for auth state changes
   _sb.auth.onAuthStateChange(async (event, session) => {
-    if (session?.user) {
+    if (event === 'SIGNED_OUT') {
+      _currentUser = null;
+      stopPoll();
+      setSyncStatus('disconnected');
+      showAuthModal();
+      return;
+    }
+    if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
       _currentUser = session.user;
       hideAuthModal();
       setSyncStatus('syncing');
@@ -3464,12 +3476,9 @@ async function initAuth() {
       } catch(e) {
         setSyncStatus('error', e.message);
       }
-    } else {
-      _currentUser = null;
-      stopPoll();
-      setSyncStatus('disconnected');
-      showAuthModal();
     }
+    // TOKEN_REFRESHED and other events: just update _currentUser silently
+    if (session?.user) _currentUser = session.user;
   });
 
   // Check existing session
@@ -6792,4 +6801,3 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
-
