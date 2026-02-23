@@ -3639,6 +3639,17 @@ async function _startSession(user) {
 }
 
 
+// Normalise a category string against existing inventory categories.
+// If an existing category matches case-insensitively, return that existing
+// casing so "Men's clothing" merges into "Men's Clothing" (whichever came first).
+function normCat(input) {
+  if (!input) return input;
+  const trimmed = input.trim();
+  const lower = trimmed.toLowerCase();
+  const existing = inv.find(i => (i.category || '').toLowerCase() === lower);
+  return existing ? existing.category : trimmed;
+}
+
 const save = () => {
   // Try writing full data including images
   try {
@@ -3854,12 +3865,17 @@ function renderBreakdown() {
   const totalProfit= inv.reduce((a,i)=>{ const {pu}=calc(i); return a+pu*(i.qty||0); },0);
   const avgMargin  = totalValue ? totalProfit/totalValue : 0;
 
+  // Build canonical category map for case-insensitive grouping
+  const _canonCatMap = new Map();
+  inv.forEach(i => { const c=(i.category||'').trim(); if(c){ const k=c.toLowerCase(); if(!_canonCatMap.has(k)) _canonCatMap.set(k,c); } });
+  const canonCat = c => _canonCatMap.get((c||'').toLowerCase()) || c || UNCATEGORIZED;
+
   // Build category → subcategory → items map
   const catMap = {}; // { catName: { value, units, items, cost, profit, subs: { subName: {...} } } }
   const UNCATEGORIZED = '(Uncategorized)';
 
   for (const item of inv) {
-    const cat = item.category || UNCATEGORIZED;
+    const cat = item.category ? canonCat(item.category) : UNCATEGORIZED;
     const sub = item.subcategory || '';
     const {pu} = calc(item);
     const itemVal  = (item.price||0)*(item.qty||0);
@@ -4088,11 +4104,14 @@ function buildChips() {
   });
   document.getElementById('platChips').innerHTML = platHtml;
 
-  const cats=['all',...[...new Set(inv.map(i=>i.category||'').filter(Boolean))].sort()];
+  // Case-insensitive dedup — keep first-seen casing per lowercase key
+  const _catMap = new Map();
+  inv.forEach(i => { const c=(i.category||'').trim(); if(c){ const k=c.toLowerCase(); if(!_catMap.has(k)) _catMap.set(k,c); } });
+  const cats=['all',...[..._catMap.values()].sort()];
   const catEl=document.getElementById('catChips');
   catEl.innerHTML=cats.map(c=>{
     const safe=c.replace(/'/g,"\\'");
-    const isActive = c==='all' ? catFilt.size===0 : catFilt.has(c);
+    const isActive = c==='all' ? catFilt.size===0 : [...catFilt].some(f=>f.toLowerCase()===c.toLowerCase());
     return `<span class="filter-chip cat-chip ${isActive?'active':''}" onclick="setCatFilt('${safe}',this)">${c==='all'?'All Categories':c}</span>`;
   }).join('');
 
@@ -4104,7 +4123,7 @@ function buildChips() {
   const singleCat  = catFilt.size === 1 ? [...catFilt][0] : null;
   const subcatDefs = singleCat ? SUBCATS[singleCat] : null;
   if (subcatDefs) {
-    const usedSubs = [...new Set(inv.filter(i=>i.category===singleCat).map(i=>i.subcategory||'').filter(Boolean))];
+    const _sc=singleCat.toLowerCase(); const usedSubs = [...new Set(inv.filter(i=>(i.category||'').toLowerCase()===_sc).map(i=>i.subcategory||'').filter(Boolean))];
     const allSubs  = [...new Set([...subcatDefs, ...usedSubs])];
     document.getElementById('subcatChips').innerHTML=
       ['all',...allSubs].map(s=>{
@@ -4196,7 +4215,7 @@ function renderInv() {
   let items=inv.filter(i=>{
     const mq=!q||i.name.toLowerCase().includes(q)||(i.sku||'').toLowerCase().includes(q)||(i.category||'').toLowerCase().includes(q)||(i.subcategory||'').toLowerCase().includes(q)||(i.subtype||'').toLowerCase().includes(q)||(i.upc||'').toLowerCase().includes(q);
     const mp=platFilt.size===0||getPlatforms(i).some(p=>platFilt.has(p));
-    const mc=catFilt.size===0||(catFilt.has(i.category||''));
+    const iCat=(i.category||'').toLowerCase(); const mc=catFilt.size===0||[...catFilt].some(f=>f.toLowerCase()===iCat);
     const ms=subcatFilt==='all'||(i.subcategory||'')===subcatFilt;
     const mss=subsubcatFilt==='all'||(i.subtype||'')===subsubcatFilt;
     const mst=stockFilt==='all'||(stockFilt==='low'&&(i.qty===0||(i.bulk&&i.qty<=(i.lowAlert||2))));
@@ -4421,7 +4440,7 @@ function saveDrawer(){
   item.name    =document.getElementById('d_name').value.trim()||item.name;
   item.sku     =document.getElementById('d_sku').value.trim();
   item.upc     =document.getElementById('d_upc').value.trim();
-  item.category=document.getElementById('d_cat').value.trim();
+  item.category=normCat(document.getElementById('d_cat').value.trim());
   item.subcategory=(document.getElementById('d_subcat_txt').value||'').trim();
   const _dSubtype = document.getElementById('d_subtype');
   item.subtype = _dSubtype ? (_dSubtype.value||'') : (item.subtype||'');
@@ -4489,7 +4508,7 @@ function addItem(){
   const price=parseFloat(document.getElementById('f_price').value)||0;
   if(!name){toast('Name required',true);return;}
   if(!price){toast('Price required',true);return;}
-  const cat=document.getElementById('f_cat').value.trim();
+  const cat=normCat(document.getElementById('f_cat').value.trim());
   const skuDate = new Date().toISOString().slice(0,10).replace(/-/g,'');
   const skuCat = (cat||'GEN').trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4).padEnd(3,'X');
   const skuRand = Math.random().toString(36).slice(2,5).toUpperCase();
@@ -5282,7 +5301,7 @@ function printStickers(selectedOnly, ids) {
     items = inv.filter(i => {
       const mq = !q || i.name.toLowerCase().includes(q) || (i.sku||'').toLowerCase().includes(q);
       const mp = platFilt.size===0 || getPlatforms(i).some(p=>platFilt.has(p));
-      const mc = catFilt.size===0  || catFilt.has(i.category||'');
+      const _ic=(i.category||'').toLowerCase(); const mc=catFilt.size===0||[...catFilt].some(f=>f.toLowerCase()===_ic);
       const ms = subcatFilt==='all' || (i.subcategory||'')===subcatFilt;
       const mss = subsubcatFilt==='all' || (i.subtype||'')===subsubcatFilt;
       return mq&&mp&&mc&&ms&&mss;
@@ -6398,7 +6417,9 @@ function imgSlotChange(event, pfx, idx) {
   const file = event.target.files[0];
   event.target.value = '';
   if (!file) return;
-  readImgFile(file, pfx + ':' + idx);
+  // For drawer slots use the actual item ID, not 'd', so cropConfirm can find the item
+  const ctx = (pfx === 'f') ? ('f:' + idx) : (activeDrawId + ':' + idx);
+  readImgFile(file, ctx);
 }
 
 function imgSlotRemove(event, pfx, idx) {
