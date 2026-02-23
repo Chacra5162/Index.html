@@ -3877,6 +3877,8 @@ async function _startSession(user) {
     refresh();
     setSyncStatus('connected');
     startPoll();
+    // Pull supplies from cloud (separate table)
+    pullSupplies().catch(e => console.warn('FlipTrack: supplies pull error:', e.message));
     // Silently migrate any existing base64 images to Supabase Storage
     migrateImagesToStorage().catch(e => console.warn('FlipTrack: migration error:', e.message));
   } catch(e) {
@@ -3924,6 +3926,7 @@ const fmt  = n => '$' + Number(n||0).toLocaleString('en-US',{minimumFractionDigi
 const pct  = n => (n*100).toFixed(1)+'%';
 const uid  = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 const ds   = d => new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+const escHtml = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
 const PLATFORMS = [
   'eBay','Amazon','Etsy','Facebook Marketplace',
   'Depop','Poshmark','Mercari','Grailed','StockX','GOAT','Vinted','Tradesy','The RealReal','Vestiaire Collective',
@@ -4721,7 +4724,7 @@ function openAddModal(){
 }
 function closeAdd(){
   document.getElementById('addOv').classList.remove('on');
-  ['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});;
+  ['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f_qty').value='1';
   const bulkCb = document.getElementById('f_bulk'); if(bulkCb) bulkCb.checked=false;
   const bulkFields = document.getElementById('f_bulk_fields'); if(bulkFields) bulkFields.style.display='none';
@@ -5210,11 +5213,12 @@ function renderExpenses() {
 
   tbody.innerHTML = filtered.map(e => {
     const cls = EXP_CAT_CLASS[e.category] || 'exp-other';
+    const safeDesc = escHtml(e.description);
     const desc = e.description.replace(/"/g,'&quot;');
     return `<tr>
       <td style="color:var(--muted);font-size:11px">${ds(e.date)}</td>
-      <td title="${desc}"><span class="exp-cat-badge ${cls}">${e.category}</span><span class="exp-desc-mobile"> · ${e.description}</span></td>
-      <td title="${desc}">${e.description}</td>
+      <td title="${desc}"><span class="exp-cat-badge ${cls}">${e.category}</span><span class="exp-desc-mobile"> · ${safeDesc}</span></td>
+      <td title="${desc}">${safeDesc}</td>
       <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:var(--danger)">
         ${fmt(e.amount)}&nbsp;<button class="act-btn red exp-del-mobile" onclick="delExpense('${e.id}')" style="margin-left:4px;vertical-align:middle">✕</button>
       </td>
@@ -5352,7 +5356,7 @@ function renderReports() {
           return `<tr>
             <td style="color:var(--muted);font-size:11px">${ds(e.date)}</td>
             <td><span class="exp-cat-badge ${cls}">${e.category}</span></td>
-            <td>${e.description}</td>
+            <td>${escHtml(e.description)}</td>
             <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:var(--danger)">${fmt(e.amount)}</td>
           </tr>`;
         }).join('')}</tbody>
@@ -6025,17 +6029,19 @@ function saveSupplies() {
 }
 
 async function syncSupplies() {
-  if (!supabase || !accountId) return;
+  if (!_sb || !_currentUser) return;
   try {
-    const rows = supplies.map(s => ({ id: s.id, account_id: accountId, data: s }));
-    await supabase.from('ft_supplies').upsert(rows, { onConflict: 'id' });
+    const acctId = _currentUser.id;
+    const rows = supplies.map(s => ({ id: s.id, account_id: acctId, data: s }));
+    await _sb.from('ft_supplies').upsert(rows, { onConflict: 'id' });
   } catch {}
 }
 
 async function pullSupplies() {
-  if (!supabase || !accountId) return;
+  if (!_sb || !_currentUser) return;
   try {
-    const { data } = await supabase.from('ft_supplies').select('data').eq('account_id', accountId);
+    const acctId = _currentUser.id;
+    const { data } = await _sb.from('ft_supplies').select('data').eq('account_id', acctId);
     if (data && data.length) supplies = data.map(r => r.data).filter(Boolean);
     saveLocalSupplies();
   } catch {}
@@ -7343,6 +7349,7 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.warn('SW registration failed:', err));
   });
 }
+</script>
 
 </body>
 </html>
