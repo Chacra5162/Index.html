@@ -3428,11 +3428,11 @@ async function pushToCloud() {
 
   const invRows = inv.map(i => {
     const d = { ...i };
-    // Only strip if somehow an uncompressed image slipped through (>800KB base64 string)
-    // Normal compressed images are ~200-400KB binary = ~270-550KB base64 string — keep them
-    const STRIP_THRESHOLD = 1100000; // ~800KB binary — clearly uncompressed
-    if (d.image && d.image.length > STRIP_THRESHOLD) delete d.image;
-    if (d.images) d.images = d.images.map(img => (img && img.length > STRIP_THRESHOLD) ? null : img).filter(Boolean);
+    // Strip any remaining base64 blobs that failed to upload to Storage
+    // (only keep http URLs — base64 strings stay local until migration succeeds)
+    if (d.images) d.images = d.images.map(img => isStorageUrl(img) ? img : null).filter(Boolean);
+    if (d.image && !isStorageUrl(d.image)) delete d.image;
+    if (d.images && d.images.length) d.image = d.images[0];
     return { id: i.id, account_id: accountId, data: d, updated_at: new Date().toISOString() };
   });
 
@@ -3463,6 +3463,73 @@ async function pushDeleteToCloud(table, ids) {
     await _sb.from(table).delete().in('id', ids);
   } catch(e) {
     console.warn(`FlipTrack: delete from ${table} failed:`, e.message);
+  }
+}
+
+// ── Supabase Storage — images ────────────────────────────────────────────────
+const IMG_BUCKET = 'item-images';
+
+// Convert base64 dataUrl → Blob upload → return public URL string
+async function uploadImageToStorage(dataUrl, itemId, slotIdx) {
+  if (!_sb || !_currentUser) throw new Error('Not authenticated');
+  const res  = await fetch(dataUrl);
+  const blob = await res.blob();
+  const userId = _currentUser.id;
+  const filename = `${itemId}_${slotIdx}_${Date.now()}.jpg`;
+  const path = `${userId}/${filename}`;
+  const { error } = await _sb.storage.from(IMG_BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+  if (error) throw new Error(error.message);
+  const { data: { publicUrl } } = _sb.storage.from(IMG_BUCKET).getPublicUrl(path);
+  return publicUrl;
+}
+
+// Delete an image from Storage given its public URL
+async function deleteImageFromStorage(url) {
+  if (!_sb || !_currentUser || !url || !url.includes('/storage/')) return;
+  try {
+    const marker = `/object/public/${IMG_BUCKET}/`;
+    const idx = url.indexOf(marker);
+    if (idx === -1) return;
+    const path = decodeURIComponent(url.slice(idx + marker.length));
+    await _sb.storage.from(IMG_BUCKET).remove([path]);
+  } catch(e) {
+    console.warn('FlipTrack: storage delete failed:', e.message);
+  }
+}
+
+// Helper: is a string a Storage URL (not base64)?
+const isStorageUrl = s => typeof s === 'string' && s.startsWith('http');
+
+// After first pull: upload any base64 images still in inv to Storage, replace with URLs
+async function migrateImagesToStorage() {
+  if (!_sb || !_currentUser) return;
+  let migrated = 0;
+  for (const item of inv) {
+    const imgs = getItemImages(item);
+    let changed = false;
+    const newImgs = [];
+    for (let idx = 0; idx < imgs.length; idx++) {
+      const img = imgs[idx];
+      if (!img || isStorageUrl(img)) { newImgs.push(img); continue; }
+      try {
+        const url = await uploadImageToStorage(img, item.id, idx);
+        newImgs.push(url);
+        changed = true;
+        migrated++;
+      } catch(e) {
+        newImgs.push(img); // keep base64 on failure
+        console.warn('FlipTrack: migration upload failed for', item.id, e.message);
+      }
+    }
+    if (changed) {
+      item.images = newImgs;
+      item.image  = newImgs[0] || null;
+    }
+  }
+  if (migrated > 0) {
+    save();
+    renderInv();
+    toast(`Migrated ${migrated} photo${migrated > 1 ? 's' : ''} to cloud storage ✓`);
   }
 }
 
@@ -3630,6 +3697,8 @@ async function _startSession(user) {
     refresh();
     setSyncStatus('connected');
     startPoll();
+    // Silently migrate any existing base64 images to Supabase Storage
+    migrateImagesToStorage().catch(e => console.warn('FlipTrack: migration error:', e.message));
   } catch(e) {
     setSyncStatus('error', e.message);
     toast('Sync error: ' + e.message.slice(0, 60), true);
@@ -4517,8 +4586,28 @@ function addItem(){
   const platform=selPlats[0]||'Other';
   const isBulk = document.getElementById('f_bulk')?.checked || false;
   const qty = isBulk ? (parseInt(document.getElementById('f_qty').value)||1) : 1;
-  inv.push({id:uid(),name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:(document.getElementById('f_subcat_txt').value||'').trim(),subtype:document.getElementById('f_subtype').value||'',platform,platforms:selPlats,cost:parseFloat(document.getElementById('f_cost').value)||0,price,qty,bulk:isBulk,fees:parseFloat(document.getElementById('f_fees').value)||0,ship:parseFloat(document.getElementById('f_ship').value)||0,lowAlert:isBulk?(parseInt(document.getElementById('f_alert').value)||2):2,notes:document.getElementById('f_notes').value.trim(),images:pendingAddImages.slice(),image:pendingAddImages[0]||null,...getDimsFromForm('f'),added:new Date().toISOString()});
+  const newId = uid();
+  const imagesToUpload = pendingAddImages.slice(); // capture before closeAdd clears them
+  inv.push({id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:(document.getElementById('f_subcat_txt').value||'').trim(),subtype:document.getElementById('f_subtype').value||'',platform,platforms:selPlats,cost:parseFloat(document.getElementById('f_cost').value)||0,price,qty,bulk:isBulk,fees:parseFloat(document.getElementById('f_fees').value)||0,ship:parseFloat(document.getElementById('f_ship').value)||0,lowAlert:isBulk?(parseInt(document.getElementById('f_alert').value)||2):2,notes:document.getElementById('f_notes').value.trim(),images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),added:new Date().toISOString()});
   save(); closeAdd(); refresh(); _sfx.create(); toast('Item added ✓');
+
+  // Upload images to Storage in background, replace base64 with URLs
+  if (imagesToUpload.length && _sb && _currentUser) {
+    const newItem = inv.find(i => i.id === newId);
+    if (newItem) {
+      Promise.all(imagesToUpload.map((b64, idx) =>
+        uploadImageToStorage(b64, newId, idx).catch(e => {
+          console.warn('FlipTrack: upload failed for slot', idx, e.message);
+          return b64; // keep base64 on failure
+        })
+      )).then(results => {
+        newItem.images = results;
+        newItem.image  = results[0] || null;
+        save();
+        renderInv();
+      });
+    }
+  }
 }
 
 // SOLD MODAL
@@ -6432,12 +6521,15 @@ function imgSlotRemove(event, pfx, idx) {
     const item = inv.find(i => i.id === activeDrawId);
     if (!item) return;
     const imgs = getItemImages(item);
+    const removed = imgs[idx];
     imgs.splice(idx, 1);
     item.images = imgs;
     item.image  = imgs[0] || null;
     save();
     refreshImgSlots('d', imgs);
     renderInv();
+    // Delete from Storage if it was a URL (not a pending base64)
+    if (isStorageUrl(removed)) deleteImageFromStorage(removed);
   }
 }
 
@@ -6816,24 +6908,46 @@ function cropConfirm() {
     const slotIdx = parseInt(slotStr) || 0;
 
     if (ctxId === 'f') {
+      // Add form — store base64 for immediate preview; upload happens in addItem()
       if (slotIdx >= pendingAddImages.length) pendingAddImages.push(compressed);
       else pendingAddImages[slotIdx] = compressed;
       refreshImgSlots('f', pendingAddImages);
+      toast('Photo added ✓');
     } else {
+      // Drawer (existing item) — show base64 immediately, upload in background
       const itemId = ctxId || savedDrawId;
       const item = inv.find(i => i.id === itemId);
       if (item) {
         const imgs = getItemImages(item);
         if (slotIdx >= imgs.length) imgs.push(compressed);
         else imgs[slotIdx] = compressed;
-        item.images = imgs;
+        item.images = imgs.slice();
         item.image  = imgs[0] || null;
-        save();
-        refreshImgSlots('d', imgs);
+        refreshImgSlots('d', item.images);
         renderInv();
+        toast('Photo added — uploading…');
+
+        // Upload to Storage, replace base64 with URL
+        uploadImageToStorage(compressed, itemId, slotIdx)
+          .then(url => {
+            const current = getItemImages(item);
+            const bi = current.indexOf(compressed);
+            if (bi !== -1) current[bi] = url;
+            else current[slotIdx] = url;
+            item.images = current;
+            item.image  = current[0] || null;
+            save();
+            refreshImgSlots('d', item.images);
+            renderInv();
+            toast('Photo saved ✓');
+          })
+          .catch(e => {
+            console.warn('FlipTrack: upload failed, keeping base64:', e.message);
+            save(); // save base64 as fallback
+            toast('Photo saved locally ✓');
+          });
       }
     }
-    toast(didCompress ? 'Photo cropped & compressed ✓' : 'Photo cropped ✓');
   });
 }
 
