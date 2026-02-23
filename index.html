@@ -551,9 +551,9 @@ main { padding: 24px 32px; max-width: 1440px; margin: 0 auto; }
 }
 .img-slot {
   position: relative;
-  aspect-ratio: 1;
+  width: 100%;
+  height: 90px;
   border-radius: 6px;
-  overflow: hidden;
   border: 2px dashed var(--border2);
   cursor: pointer;
   transition: border-color 0.15s;
@@ -562,7 +562,8 @@ main { padding: 24px 32px; max-width: 1440px; margin: 0 auto; }
   align-items: center;
   justify-content: center;
   gap: 4px;
-  min-height: 80px;
+  overflow: hidden;
+  -webkit-overflow-scrolling: auto;
 }
 .img-slot:hover { border-color: var(--accent); background: rgba(200,255,87,0.04); }
 .img-slot.filled { border-style: solid; border-color: var(--border); }
@@ -6328,28 +6329,6 @@ function renderImgSlots(wrapId, images, onAdd, onRemove) {
   wrap.className = 'img-slots';
   while (wrap.firstChild) wrap.removeChild(wrap.firstChild);
 
-  // One hidden file input lives outside the grid to avoid any hit-area leaking
-  const inputId = wrapId + '_fileinput';
-  let existingInput = document.getElementById(inputId);
-  if (!existingInput) {
-    existingInput = document.createElement('input');
-    existingInput.type = 'file';
-    existingInput.id = inputId;
-    existingInput.accept = 'image/*';
-    existingInput.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
-    document.body.appendChild(existingInput);
-  }
-  // Remove previous listener
-  const freshInput = existingInput.cloneNode(false);
-  existingInput.parentNode.replaceChild(freshInput, existingInput);
-
-  let pendingSlotIdx = 0;
-  freshInput.addEventListener('change', e => {
-    const file = e.target.files[0];
-    freshInput.value = '';
-    if (file) onAdd(file, pendingSlotIdx);
-  });
-
   // Filled slots
   images.forEach((dataUrl, idx) => {
     const slot = document.createElement('div');
@@ -6358,6 +6337,7 @@ function renderImgSlots(wrapId, images, onAdd, onRemove) {
     const img = document.createElement('img');
     img.src = dataUrl;
     img.alt = 'Photo ' + (idx + 1);
+    // Use touchend for lightbox on iOS so it doesn't conflict with remove btn
     img.addEventListener('click', () => openLightboxUrl(dataUrl));
     slot.appendChild(img);
 
@@ -6370,19 +6350,22 @@ function renderImgSlots(wrapId, images, onAdd, onRemove) {
 
     const rm = document.createElement('button');
     rm.className = 'img-slot-rm';
+    rm.type = 'button';
     rm.title = 'Remove';
     rm.textContent = '×';
-    rm.type = 'button';
-    rm.addEventListener('click', e => { e.stopPropagation(); onRemove(idx); });
+    rm.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); onRemove(idx); });
     slot.appendChild(rm);
 
     wrap.appendChild(slot);
   });
 
-  // Add slot — tap triggers the off-screen file input
+  // Empty add-slot — label wraps a hidden input; label IS the tap target, 100% iOS safe
   if (images.length < 3) {
-    const slot = document.createElement('div');
+    const inputId = wrapId + '_add_' + images.length + '_' + Date.now();
+    const slot = document.createElement('label');
     slot.className = 'img-slot';
+    slot.htmlFor = inputId;
+    slot.style.cursor = 'pointer';
 
     const icon = document.createElement('div');
     icon.className = 'img-slot-icon';
@@ -6394,22 +6377,18 @@ function renderImgSlots(wrapId, images, onAdd, onRemove) {
     lbl.textContent = 'Add Photo';
     slot.appendChild(lbl);
 
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.id = inputId;
+    input.accept = 'image/*';
+    input.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none;';
     const slotIdx = images.length;
-    // Use touchend for iOS — touchstart can be swallowed by scroll detection
-    let _tapped = false;
-    slot.addEventListener('touchend', e => {
-      e.preventDefault();
-      if (_tapped) return;
-      _tapped = true;
-      setTimeout(() => { _tapped = false; }, 500);
-      pendingSlotIdx = slotIdx;
-      freshInput.click();
+    input.addEventListener('change', e => {
+      const file = e.target.files[0];
+      input.value = '';
+      if (file) onAdd(file, slotIdx);
     });
-    slot.addEventListener('click', e => {
-      // Fallback for desktop / non-touch
-      pendingSlotIdx = slotIdx;
-      freshInput.click();
-    });
+    slot.appendChild(input);
 
     wrap.appendChild(slot);
   }
