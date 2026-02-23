@@ -567,6 +567,8 @@ main { padding: 24px 32px; max-width: 1440px; margin: 0 auto; }
 }
 .img-slot:hover { border-color: var(--accent); background: rgba(200,255,87,0.04); }
 .img-slot.filled { border-style: solid; border-color: var(--border); }
+.img-slot.img-slot-locked { cursor: default; pointer-events: none; }
+.img-slot-add { display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; }
 .img-slot img {
   width: 100%;
   height: 100%;
@@ -2634,7 +2636,30 @@ textarea { resize:vertical; min-height:70px; }
     <div class="drawer-tab-panel" id="dtab-media">
       <div class="dsec" id="dImgSec">
         <div class="dsec-ttl">Item Photos <span style="color:var(--muted);font-weight:400;font-size:10px">(up to 3)</span></div>
-        <div id="dImgWrap" class="img-slots"></div>
+        <div id="dImgWrap" class="img-slots">
+          <!-- Slot 0 -->
+          <div class="img-slot" id="dSlot0" onclick="imgSlotTap('d',0)">
+            <img id="dSlotImg0" src="" alt="" style="display:none">
+            <span class="img-slot-badge" id="dSlotBadge0" style="display:none">MAIN</span>
+            <button type="button" class="img-slot-rm" id="dSlotRm0" style="display:none" onclick="imgSlotRemove(event,'d',0)">×</button>
+            <div class="img-slot-add" id="dSlotAdd0"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
+            <input type="file" id="dSlotInput0" accept="image/*" style="display:none" onchange="imgSlotChange(event,'d',0)">
+          </div>
+          <!-- Slot 1 -->
+          <div class="img-slot img-slot-locked" id="dSlot1" onclick="imgSlotTap('d',1)">
+            <img id="dSlotImg1" src="" alt="" style="display:none">
+            <button type="button" class="img-slot-rm" id="dSlotRm1" style="display:none" onclick="imgSlotRemove(event,'d',1)">×</button>
+            <div class="img-slot-add" id="dSlotAdd1" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
+            <input type="file" id="dSlotInput1" accept="image/*" style="display:none" onchange="imgSlotChange(event,'d',1)">
+          </div>
+          <!-- Slot 2 -->
+          <div class="img-slot img-slot-locked" id="dSlot2" onclick="imgSlotTap('d',2)">
+            <img id="dSlotImg2" src="" alt="" style="display:none">
+            <button type="button" class="img-slot-rm" id="dSlotRm2" style="display:none" onclick="imgSlotRemove(event,'d',2)">×</button>
+            <div class="img-slot-add" id="dSlotAdd2" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
+            <input type="file" id="dSlotInput2" accept="image/*" style="display:none" onchange="imgSlotChange(event,'d',2)">
+          </div>
+        </div>
       </div>
       <div class="dsec" id="dBarcodeSec">
         <div class="dsec-ttl">Barcode</div>
@@ -2910,7 +2935,30 @@ textarea { resize:vertical; min-height:70px; }
         </div>
         <div class="fgrp full">
           <label>Item Photos <span style="color:var(--muted);font-weight:400;font-size:10px">(up to 3)</span></label>
-          <div id="fImgWrap" class="img-slots"></div>
+          <div id="fImgWrap" class="img-slots">
+            <!-- Slot 0 -->
+            <div class="img-slot" id="fSlot0" onclick="imgSlotTap('f',0)">
+              <img id="fSlotImg0" src="" alt="" style="display:none">
+              <span class="img-slot-badge" id="fSlotBadge0" style="display:none">MAIN</span>
+              <button type="button" class="img-slot-rm" id="fSlotRm0" style="display:none" onclick="imgSlotRemove(event,'f',0)">×</button>
+              <div class="img-slot-add" id="fSlotAdd0"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
+              <input type="file" id="fSlotInput0" accept="image/*" style="display:none" onchange="imgSlotChange(event,'f',0)">
+            </div>
+            <!-- Slot 1 -->
+            <div class="img-slot img-slot-locked" id="fSlot1" onclick="imgSlotTap('f',1)">
+              <img id="fSlotImg1" src="" alt="" style="display:none">
+              <button type="button" class="img-slot-rm" id="fSlotRm1" style="display:none" onclick="imgSlotRemove(event,'f',1)">×</button>
+              <div class="img-slot-add" id="fSlotAdd1" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
+              <input type="file" id="fSlotInput1" accept="image/*" style="display:none" onchange="imgSlotChange(event,'f',1)">
+            </div>
+            <!-- Slot 2 -->
+            <div class="img-slot img-slot-locked" id="fSlot2" onclick="imgSlotTap('f',2)">
+              <img id="fSlotImg2" src="" alt="" style="display:none">
+              <button type="button" class="img-slot-rm" id="fSlotRm2" style="display:none" onclick="imgSlotRemove(event,'f',2)">×</button>
+              <div class="img-slot-add" id="fSlotAdd2" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
+              <input type="file" id="fSlotInput2" accept="image/*" style="display:none" onchange="imgSlotChange(event,'f',2)">
+            </div>
+          </div>
         </div>
       </div>
       <div class="profit-prev">
@@ -4318,9 +4366,6 @@ function drawerTab(name, btn) {
 function closeDrawer(){
   document.getElementById('drawerOv').classList.remove('on');
   document.getElementById('drawer').classList.remove('on');
-  // Remove the hidden file input so it can't intercept future touches
-  const pick = document.getElementById('__imgpick_dImgWrap');
-  if (pick) pick.parentNode.removeChild(pick);
   // Reset to Details tab for next open
   document.querySelectorAll('.drawer-tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.drawer-tab').forEach(b => b.classList.remove('active'));
@@ -4359,8 +4404,7 @@ function openAddModal(){
   const ov = document.getElementById('addOv');
   ov.classList.add('on');
   pendingAddImages = [];
-  renderAddFormImages();
-  // Reset scroll to top so user always starts at the beginning of the form
+  refreshImgSlots('f', pendingAddImages);
   const bd = ov.querySelector('.modal-bd');
   if (bd) bd.scrollTop = 0;
   const modal = ov.querySelector('.modal');
@@ -4368,14 +4412,11 @@ function openAddModal(){
 }
 function closeAdd(){
   document.getElementById('addOv').classList.remove('on');
-  // Remove the hidden file input so it can't intercept any future touches
-  const pick = document.getElementById('__imgpick_fImgWrap');
-  if (pick) pick.parentNode.removeChild(pick);
   ['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});;
   document.getElementById('f_qty').value='1';
   const bulkCb = document.getElementById('f_bulk'); if(bulkCb) bulkCb.checked=false;
   const bulkFields = document.getElementById('f_bulk_fields'); if(bulkFields) bulkFields.style.display='none';
-  pendingAddImages=[];renderAddFormImages();clearDimForm('f');buildPlatPicker('f_plat_picker',[]);prevProfit();
+  pendingAddImages=[];refreshImgSlots('f',[]);clearDimForm('f');buildPlatPicker('f_plat_picker',[]);prevProfit();
 }
 function toggleBulkFields(pfx) {
   const bulk = document.getElementById(pfx + '_bulk')?.checked;
@@ -6301,24 +6342,96 @@ document.addEventListener('keydown', e => {
 });
 
 // ── IMAGE HANDLING ──────────────────────────────────────────────────────────
+// Slots are static HTML — we only update src/classes, never rebuild DOM nodes.
 
-// Shared state for pending image in add modal
-let pendingAddImages = []; // up to 3 images for the add form
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
+let pendingAddImages = [];
 
 function getItemImages(item) {
-  // Backwards compat: old items have item.image (string), new have item.images (array)
-  if (item.images && item.images.length) return item.images;
+  if (item.images && item.images.length) return [...item.images];
   if (item.image) return [item.image];
   return [];
 }
 
-function imgSelected(event, ctx) {
+// pfx: 'f' = add-form slots, 'd' = drawer slots
+function imgSlotTap(pfx, idx) {
+  const images = pfx === 'f' ? pendingAddImages : getItemImages(inv.find(i => i.id === activeDrawId) || {});
+  if (idx !== images.length) return; // only open picker for next available slot
+  document.getElementById(pfx + 'SlotInput' + idx).click();
+}
+
+function imgSlotChange(event, pfx, idx) {
   const file = event.target.files[0];
+  event.target.value = '';
   if (!file) return;
-  event.target.value = ''; // reset so same file can be re-selected
-  readImgFile(file, ctx);
+  readImgFile(file, pfx + ':' + idx);
+}
+
+function imgSlotRemove(event, pfx, idx) {
+  event.stopPropagation();
+  event.preventDefault();
+  if (pfx === 'f') {
+    pendingAddImages.splice(idx, 1);
+    refreshImgSlots('f', pendingAddImages);
+  } else {
+    const item = inv.find(i => i.id === activeDrawId);
+    if (!item) return;
+    const imgs = getItemImages(item);
+    imgs.splice(idx, 1);
+    item.images = imgs;
+    item.image  = imgs[0] || null;
+    save();
+    refreshImgSlots('d', imgs);
+    renderInv();
+  }
+}
+
+// Update slot visuals in place — no DOM creation/destruction
+function refreshImgSlots(pfx, images) {
+  for (let i = 0; i < 3; i++) {
+    const slot  = document.getElementById(pfx + 'Slot' + i);
+    const imgEl = document.getElementById(pfx + 'SlotImg' + i);
+    const rm    = document.getElementById(pfx + 'SlotRm' + i);
+    const add   = document.getElementById(pfx + 'SlotAdd' + i);
+    const badge = document.getElementById(pfx + 'SlotBadge' + i);
+    if (!slot) continue;
+
+    if (i < images.length) {
+      // Filled slot
+      slot.className = 'img-slot filled';
+      imgEl.src = images[i];
+      imgEl.style.display = 'block';
+      rm.style.display = 'flex';
+      add.style.display = 'none';
+      if (badge) badge.style.display = 'block';
+    } else if (i === images.length) {
+      // Next available — active
+      slot.className = 'img-slot';
+      imgEl.src = '';
+      imgEl.style.display = 'none';
+      rm.style.display = 'none';
+      add.style.display = 'flex';
+      add.style.opacity = '1';
+      if (badge) badge.style.display = 'none';
+    } else {
+      // Future slot — locked/dimmed
+      slot.className = 'img-slot img-slot-locked';
+      imgEl.src = '';
+      imgEl.style.display = 'none';
+      rm.style.display = 'none';
+      add.style.display = 'flex';
+      add.style.opacity = '0.3';
+      if (badge) badge.style.display = 'none';
+    }
+  }
+}
+
+function renderAddFormImages() {
+  refreshImgSlots('f', pendingAddImages);
+}
+
+function renderDrawerImg(itemId) {
+  const item = inv.find(i => i.id === itemId);
+  refreshImgSlots('d', item ? getItemImages(item) : []);
 }
 
 function readImgFile(file, ctx) {
@@ -6327,161 +6440,18 @@ function readImgFile(file, ctx) {
   reader.readAsDataURL(file);
 }
 
-// ── Render 3-slot image grid ──────────────────────────────────────────────────
-
-function renderImgSlots(wrapId, images, onAdd, onRemove) {
-  const wrap = document.getElementById(wrapId);
-  if (!wrap) return;
-  wrap.className = 'img-slots';
-  while (wrap.firstChild) wrap.removeChild(wrap.firstChild);
-
-  // One truly hidden file input lives in the nearest modal/drawer so it
-  // has zero visual footprint and cannot extend hit-test areas.
-  // Using display:none (not visibility/opacity tricks) is the only way iOS
-  // Safari won't extend the touch responder beyond the visual slot bounds.
-  const inputId = '__imgpick_' + wrapId;
-  const existingPick = document.getElementById(inputId);
-  if (existingPick) existingPick.parentNode.removeChild(existingPick);
-
-  const pick = document.createElement('input');
-  pick.type = 'file';
-  pick.accept = 'image/*';
-  pick.id = inputId;
-  pick.style.display = 'none';
-  // Append to nearest scrollable ancestor so it's in the DOM but invisible
-  const container = wrap.closest('.modal, .drawer') || document.body;
-  container.appendChild(pick);
-
-  let _pendingSlot = 0;
-  pick.addEventListener('change', e => {
-    const file = e.target.files[0];
-    pick.value = '';
-    if (file) onAdd(file, _pendingSlot);
-  });
-
-  // Filled image slots
-  images.forEach((dataUrl, idx) => {
-    const slot = document.createElement('div');
-    slot.className = 'img-slot filled';
-
-    const img = document.createElement('img');
-    img.src = dataUrl;
-    img.alt = 'Photo ' + (idx + 1);
-    img.addEventListener('click', () => openLightboxUrl(dataUrl));
-    slot.appendChild(img);
-
-    if (idx === 0) {
-      const badge = document.createElement('span');
-      badge.className = 'img-slot-badge';
-      badge.textContent = 'MAIN';
-      slot.appendChild(badge);
-    }
-
-    const rm = document.createElement('button');
-    rm.className = 'img-slot-rm';
-    rm.type = 'button';
-    rm.title = 'Remove';
-    rm.textContent = '×';
-    rm.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); onRemove(idx); });
-    slot.appendChild(rm);
-
-    wrap.appendChild(slot);
-  });
-
-  // Empty add slot — plain div + button, no label, no overlays
-  if (images.length < 3) {
-    const slot = document.createElement('div');
-    slot.className = 'img-slot';
-
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    // Button fills the entire slot — no invisible overlay, just a real button
-    btn.style.cssText = [
-      'position:absolute', 'inset:0', 'width:100%', 'height:100%',
-      'background:transparent', 'border:none', 'cursor:pointer',
-      'display:flex', 'flex-direction:column', 'align-items:center',
-      'justify-content:center', 'gap:4px', '-webkit-tap-highlight-color:transparent'
-    ].join(';');
-
-    const icon = document.createElement('div');
-    icon.className = 'img-slot-icon';
-    icon.textContent = '+';
-    icon.style.pointerEvents = 'none';
-    btn.appendChild(icon);
-
-    const lbl = document.createElement('div');
-    lbl.className = 'img-slot-lbl';
-    lbl.textContent = 'Add Photo';
-    lbl.style.pointerEvents = 'none';
-    btn.appendChild(lbl);
-
-    const slotIdx = images.length;
-    btn.addEventListener('click', () => {
-      _pendingSlot = slotIdx;
-      pick.click();
-    });
-
-    slot.appendChild(btn);
-    wrap.appendChild(slot);
-  }
-}
-
-// ── Add Item form images ──────────────────────────────────────────────────────
-
-function renderAddFormImages() {
-  renderImgSlots(
-    'fImgWrap',
-    pendingAddImages,
-    (file, slotIdx) => readImgFile(file, 'f:' + slotIdx),
-    (idx) => {
-      pendingAddImages.splice(idx, 1);
-      renderAddFormImages();
-    }
-  );
-}
-
-// ── Drawer images ─────────────────────────────────────────────────────────────
-
-function renderDrawerImg(itemId) {
-  const item = inv.find(i => i.id === itemId);
-  const images = item ? getItemImages(item) : [];
-  renderImgSlots(
-    'dImgWrap',
-    images,
-    (file, slotIdx) => readImgFile(file, itemId + ':' + slotIdx),
-    (idx) => {
-      if (!item) return;
-      const imgs = getItemImages(item);
-      imgs.splice(idx, 1);
-      item.images = imgs;
-      item.image  = imgs[0] || null; // keep compat field in sync
-      save();
-      renderDrawerImg(itemId);
-      renderInv();
-    }
-  );
-}
-
-// Drag-and-drop handlers (drawer only — not critical path, keep simple)
-function imgDragOver(e, zoneId) {
-  e.preventDefault();
-  document.getElementById(zoneId)?.classList.add('drag-over');
-}
-function imgDragLeave(zoneId) {
-  document.getElementById(zoneId)?.classList.remove('drag-over');
-}
-function imgDrop(e, ctx) {
+function imgDragOver(e) { e.preventDefault(); }
+function imgDragLeave() {}
+function imgDrop(e, pfx) {
   e.preventDefault();
   const file = e.dataTransfer.files[0];
-  if (file && file.type.startsWith('image/')) readImgFile(file, ctx + ':0');
+  if (file && file.type.startsWith('image/')) readImgFile(file, pfx + ':0');
 }
 
-// ── Lightbox (supports direct URL) ───────────────────────────────────────────
 function openLightbox(itemId) {
   const item = inv.find(i => i.id === itemId);
   const imgs = item ? getItemImages(item) : [];
-  if (!imgs.length) return;
-  openLightboxUrl(imgs[0]);
+  if (imgs.length) openLightboxUrl(imgs[0]);
 }
 function openLightboxUrl(url) {
   if (!url) return;
@@ -6785,16 +6755,13 @@ function cropConfirm() {
   _crop = { ctx: null, origDataUrl: null, mimeType: null, img: null, scale: 1, rect: null, drag: null, dragStart: null, aspect: null };
 
   compressImage(cropped, mimeType, (compressed, didCompress) => {
-    // ctx format: 'f:slotIdx' for add form, 'itemId:slotIdx' for drawer
     const [ctxId, slotStr] = (savedCtx || '').split(':');
     const slotIdx = parseInt(slotStr) || 0;
 
     if (ctxId === 'f') {
-      if (slotIdx >= pendingAddImages.length) {
-        pendingAddImages.push(compressed);
-      } else {
-        pendingAddImages[slotIdx] = compressed;
-      }
+      if (slotIdx >= pendingAddImages.length) pendingAddImages.push(compressed);
+      else pendingAddImages[slotIdx] = compressed;
+      refreshImgSlots('f', pendingAddImages);
     } else {
       const itemId = ctxId || savedDrawId;
       const item = inv.find(i => i.id === itemId);
@@ -6805,16 +6772,9 @@ function cropConfirm() {
         item.images = imgs;
         item.image  = imgs[0] || null;
         save();
+        refreshImgSlots('d', imgs);
+        renderInv();
       }
-    }
-
-    // Update state then re-render immediately
-    if (ctxId === 'f') {
-      renderAddFormImages();
-    } else {
-      const itemId = ctxId || savedDrawId;
-      renderDrawerImg(itemId);
-      renderInv();
     }
     toast(didCompress ? 'Photo cropped & compressed ✓' : 'Photo cropped ✓');
   });
