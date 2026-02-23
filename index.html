@@ -3420,8 +3420,11 @@ async function pushToCloud() {
 
   const invRows = inv.map(i => {
     const d = { ...i };
-    if (d.image && d.image.length > 500000) delete d.image;
-    if (d.images) d.images = d.images.map(img => (img && img.length > 500000) ? null : img).filter(Boolean);
+    // Only strip if somehow an uncompressed image slipped through (>800KB base64 string)
+    // Normal compressed images are ~200-400KB binary = ~270-550KB base64 string — keep them
+    const STRIP_THRESHOLD = 1100000; // ~800KB binary — clearly uncompressed
+    if (d.image && d.image.length > STRIP_THRESHOLD) delete d.image;
+    if (d.images) d.images = d.images.map(img => (img && img.length > STRIP_THRESHOLD) ? null : img).filter(Boolean);
     return { id: i.id, account_id: accountId, data: d, updated_at: new Date().toISOString() };
   });
 
@@ -6814,8 +6817,8 @@ function cropConfirm() {
  * Iteratively reduces quality and/or dimensions until small enough.
  */
 function compressImage(dataUrl, mimeType, callback) {
-  const TARGET_KB = 400;         // target storage size in KB
-  const MAX_DIM   = 1200;        // max width or height in px
+  const TARGET_KB = 200;         // target storage size in KB (~270KB base64 string)
+  const MAX_DIM   = 900;         // max width or height in px
   const MIN_QUALITY = 0.30;      // don't go below 30% quality
   const outputType  = 'image/jpeg'; // always output JPEG for compression
 
