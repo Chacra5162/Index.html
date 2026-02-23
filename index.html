@@ -2942,21 +2942,18 @@ textarea { resize:vertical; min-height:70px; }
               <span class="img-slot-badge" id="fSlotBadge0" style="display:none">MAIN</span>
               <button type="button" class="img-slot-rm" id="fSlotRm0" style="display:none" onclick="imgSlotRemove(event,'f',0)">×</button>
               <div class="img-slot-add" id="fSlotAdd0"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
-              <input type="file" id="fSlotInput0" accept="image/*" style="display:none" onchange="imgSlotChange(event,'f',0)">
             </div>
             <!-- Slot 1 -->
             <div class="img-slot img-slot-locked" id="fSlot1" onclick="imgSlotTap('f',1)">
               <img id="fSlotImg1" src="" alt="" style="display:none">
               <button type="button" class="img-slot-rm" id="fSlotRm1" style="display:none" onclick="imgSlotRemove(event,'f',1)">×</button>
               <div class="img-slot-add" id="fSlotAdd1" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
-              <input type="file" id="fSlotInput1" accept="image/*" style="display:none" onchange="imgSlotChange(event,'f',1)">
             </div>
             <!-- Slot 2 -->
             <div class="img-slot img-slot-locked" id="fSlot2" onclick="imgSlotTap('f',2)">
               <img id="fSlotImg2" src="" alt="" style="display:none">
               <button type="button" class="img-slot-rm" id="fSlotRm2" style="display:none" onclick="imgSlotRemove(event,'f',2)">×</button>
               <div class="img-slot-add" id="fSlotAdd2" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
-              <input type="file" id="fSlotInput2" accept="image/*" style="display:none" onchange="imgSlotChange(event,'f',2)">
             </div>
           </div>
         </div>
@@ -6355,8 +6352,9 @@ function getItemImages(item) {
 // pfx: 'f' = add-form slots, 'd' = drawer slots
 function imgSlotTap(pfx, idx) {
   const images = pfx === 'f' ? pendingAddImages : getItemImages(inv.find(i => i.id === activeDrawId) || {});
-  if (idx !== images.length) return; // only open picker for next available slot
-  document.getElementById(pfx + 'SlotInput' + idx).click();
+  if (idx !== images.length) return;
+  const input = document.getElementById(pfx + 'SlotInput' + idx);
+  if (input) input.click();
 }
 
 function imgSlotChange(event, pfx, idx) {
@@ -6992,6 +6990,11 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.warn('SW registration failed:', err));
   });
 }
-</script>
+<!-- File inputs for image slots — outside all modals so they have zero hit area -->
+<div id="imgFileInputs" style="position:fixed;top:-9999px;left:-9999px;pointer-events:none;opacity:0;width:0;height:0;overflow:hidden">
+  <input type="file" id="fSlotInput0" accept="image/*" onchange="imgSlotChange(event,'f',0)">
+  <input type="file" id="fSlotInput1" accept="image/*" onchange="imgSlotChange(event,'f',1)">
+  <input type="file" id="fSlotInput2" accept="image/*" onchange="imgSlotChange(event,'f',2)">
+</div>
 </body>
 </html>
