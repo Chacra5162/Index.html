@@ -557,22 +557,30 @@ main { padding: 24px 32px; max-width: 1440px; margin: 0 auto; }
   border: 2px dashed var(--border2);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
-  overflow: hidden;
 }
 .img-slot:hover { border-color: var(--accent); background: rgba(200,255,87,0.04); }
 .img-slot.filled { border-style: solid; border-color: var(--border); cursor: default; }
 .img-slot.img-slot-locked { pointer-events: none; opacity: 0.4; }
-/* label IS the tap target — fills the slot, triggers hidden input via for= */
 .img-slot-add {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4px;
+  pointer-events: none;
+}
+/* Transparent file input — always in DOM, controlled via pointer-events only */
+.img-slot-input {
   position: absolute;
-  inset: 0;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
   cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+  margin: 0; padding: 0;
+  font-size: 16px;
+  -webkit-appearance: none;
+  z-index: 1;
 }
 .img-slot img {
   position: absolute;
@@ -2647,23 +2655,23 @@ textarea { resize:vertical; min-height:70px; }
         <div class="dsec-ttl">Item Photos <span style="color:var(--muted);font-weight:400;font-size:10px">(up to 3)</span></div>
         <div id="dImgWrap" class="img-slots">
           <div class="img-slot" id="dSlot0">
-            <img id="dSlotImg0" src="" alt="" style="display:none">
+            <img id="dSlotImg0" src="" alt="" style="display:none" onclick="openLightboxUrl(this.src)">
             <span class="img-slot-badge" id="dSlotBadge0" style="display:none">MAIN</span>
             <button type="button" class="img-slot-rm" id="dSlotRm0" style="display:none" onclick="imgSlotRemove(event,'d',0)">×</button>
-            <label class="img-slot-add" id="dSlotAdd0" for="dSlotInput0"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></label>
-            <input type="file" id="dSlotInput0" accept="image/*" style="display:none" onchange="imgSlotChange(event,'d',0)">
+            <div class="img-slot-add" id="dSlotAdd0"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
+            <input type="file" id="dSlotInput0" accept="image/*" class="img-slot-input" onchange="imgSlotChange(event,'d',0)">
           </div>
           <div class="img-slot img-slot-locked" id="dSlot1">
-            <img id="dSlotImg1" src="" alt="" style="display:none">
+            <img id="dSlotImg1" src="" alt="" style="display:none" onclick="openLightboxUrl(this.src)">
             <button type="button" class="img-slot-rm" id="dSlotRm1" style="display:none" onclick="imgSlotRemove(event,'d',1)">×</button>
-            <label class="img-slot-add" id="dSlotAdd1" for="dSlotInput1" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></label>
-            <input type="file" id="dSlotInput1" accept="image/*" style="display:none" onchange="imgSlotChange(event,'d',1)">
+            <div class="img-slot-add" id="dSlotAdd1" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
+            <input type="file" id="dSlotInput1" accept="image/*" class="img-slot-input" style="pointer-events:none;opacity:0" onchange="imgSlotChange(event,'d',1)">
           </div>
           <div class="img-slot img-slot-locked" id="dSlot2">
-            <img id="dSlotImg2" src="" alt="" style="display:none">
+            <img id="dSlotImg2" src="" alt="" style="display:none" onclick="openLightboxUrl(this.src)">
             <button type="button" class="img-slot-rm" id="dSlotRm2" style="display:none" onclick="imgSlotRemove(event,'d',2)">×</button>
-            <label class="img-slot-add" id="dSlotAdd2" for="dSlotInput2" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></label>
-            <input type="file" id="dSlotInput2" accept="image/*" style="display:none" onchange="imgSlotChange(event,'d',2)">
+            <div class="img-slot-add" id="dSlotAdd2" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
+            <input type="file" id="dSlotInput2" accept="image/*" class="img-slot-input" style="pointer-events:none;opacity:0" onchange="imgSlotChange(event,'d',2)">
           </div>
         </div>
       </div>
@@ -2943,23 +2951,23 @@ textarea { resize:vertical; min-height:70px; }
           <label>Item Photos <span style="color:var(--muted);font-weight:400;font-size:10px">(up to 3)</span></label>
           <div id="fImgWrap" class="img-slots">
             <div class="img-slot" id="fSlot0">
-              <img id="fSlotImg0" src="" alt="" style="display:none">
+              <img id="fSlotImg0" src="" alt="" style="display:none" onclick="openLightboxUrl(this.src)">
               <span class="img-slot-badge" id="fSlotBadge0" style="display:none">MAIN</span>
               <button type="button" class="img-slot-rm" id="fSlotRm0" style="display:none" onclick="imgSlotRemove(event,'f',0)">×</button>
-              <label class="img-slot-add" id="fSlotAdd0" for="fSlotInput0"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></label>
-              <input type="file" id="fSlotInput0" accept="image/*" style="display:none" onchange="imgSlotChange(event,'f',0)">
+              <div class="img-slot-add" id="fSlotAdd0"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
+              <input type="file" id="fSlotInput0" accept="image/*" class="img-slot-input" onchange="imgSlotChange(event,'f',0)">
             </div>
             <div class="img-slot img-slot-locked" id="fSlot1">
-              <img id="fSlotImg1" src="" alt="" style="display:none">
+              <img id="fSlotImg1" src="" alt="" style="display:none" onclick="openLightboxUrl(this.src)">
               <button type="button" class="img-slot-rm" id="fSlotRm1" style="display:none" onclick="imgSlotRemove(event,'f',1)">×</button>
-              <label class="img-slot-add" id="fSlotAdd1" for="fSlotInput1" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></label>
-              <input type="file" id="fSlotInput1" accept="image/*" style="display:none" onchange="imgSlotChange(event,'f',1)">
+              <div class="img-slot-add" id="fSlotAdd1" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
+              <input type="file" id="fSlotInput1" accept="image/*" class="img-slot-input" style="pointer-events:none;opacity:0" onchange="imgSlotChange(event,'f',1)">
             </div>
             <div class="img-slot img-slot-locked" id="fSlot2">
-              <img id="fSlotImg2" src="" alt="" style="display:none">
+              <img id="fSlotImg2" src="" alt="" style="display:none" onclick="openLightboxUrl(this.src)">
               <button type="button" class="img-slot-rm" id="fSlotRm2" style="display:none" onclick="imgSlotRemove(event,'f',2)">×</button>
-              <label class="img-slot-add" id="fSlotAdd2" for="fSlotInput2" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></label>
-              <input type="file" id="fSlotInput2" accept="image/*" style="display:none" onchange="imgSlotChange(event,'f',2)">
+              <div class="img-slot-add" id="fSlotAdd2" style="opacity:0.35"><div class="img-slot-icon">+</div><div class="img-slot-lbl">Add Photo</div></div>
+              <input type="file" id="fSlotInput2" accept="image/*" class="img-slot-input" style="pointer-events:none;opacity:0" onchange="imgSlotChange(event,'f',2)">
             </div>
           </div>
         </div>
@@ -6413,46 +6421,42 @@ function imgSlotRemove(event, pfx, idx) {
 }
 
 // Update slot visuals in place — no DOM creation/destruction
-// img-slot-add is a <label for="inputId"> — we enable/disable by setting/removing for=
+// Inputs are always in DOM; enabled/disabled via pointer-events not display:none
 function refreshImgSlots(pfx, images) {
   for (let i = 0; i < 3; i++) {
     const slot  = document.getElementById(pfx + 'Slot' + i);
     const imgEl = document.getElementById(pfx + 'SlotImg' + i);
     const rm    = document.getElementById(pfx + 'SlotRm' + i);
-    const lbl   = document.getElementById(pfx + 'SlotAdd' + i);  // this is the <label>
+    const add   = document.getElementById(pfx + 'SlotAdd' + i);
     const badge = document.getElementById(pfx + 'SlotBadge' + i);
+    const input = document.getElementById(pfx + 'SlotInput' + i);
     if (!slot) continue;
 
     if (i < images.length) {
-      // Filled — show preview, hide label tap target
+      // Filled — show preview, disable input so it can't intercept remove button
       slot.className = 'img-slot filled';
       imgEl.src = images[i];
       imgEl.style.display = 'block';
-      if (rm) rm.style.display = 'flex';
-      if (lbl) { lbl.style.display = 'none'; lbl.removeAttribute('for'); }
-      if (badge) badge.style.display = i === 0 ? 'block' : 'none';
+      if (rm)    { rm.style.display = 'flex'; }
+      if (add)   { add.style.display = 'none'; }
+      if (badge) { badge.style.display = i === 0 ? 'block' : 'none'; }
+      if (input) { input.style.pointerEvents = 'none'; input.style.opacity = '0'; }
     } else if (i === images.length) {
-      // Next available — show label tap target at full opacity
+      // Next available — show + icon, enable input as transparent tap target
       slot.className = 'img-slot';
       imgEl.src = ''; imgEl.style.display = 'none';
-      if (rm) rm.style.display = 'none';
-      if (lbl) {
-        lbl.style.display = 'flex';
-        lbl.style.opacity = '1';
-        lbl.setAttribute('for', pfx + 'SlotInput' + i);
-      }
-      if (badge) badge.style.display = 'none';
+      if (rm)    { rm.style.display = 'none'; }
+      if (add)   { add.style.display = 'flex'; add.style.opacity = '1'; }
+      if (badge) { badge.style.display = 'none'; }
+      if (input) { input.style.pointerEvents = 'auto'; input.style.opacity = '0'; }
     } else {
-      // Future slot — locked and dimmed, label has no for so it does nothing
+      // Future slot — locked/dimmed, input disabled
       slot.className = 'img-slot img-slot-locked';
       imgEl.src = ''; imgEl.style.display = 'none';
-      if (rm) rm.style.display = 'none';
-      if (lbl) {
-        lbl.style.display = 'flex';
-        lbl.style.opacity = '0.3';
-        lbl.removeAttribute('for');
-      }
-      if (badge) badge.style.display = 'none';
+      if (rm)    { rm.style.display = 'none'; }
+      if (add)   { add.style.display = 'flex'; add.style.opacity = '0.3'; }
+      if (badge) { badge.style.display = 'none'; }
+      if (input) { input.style.pointerEvents = 'none'; input.style.opacity = '0'; }
     }
   }
 }
