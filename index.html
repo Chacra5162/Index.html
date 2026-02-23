@@ -4318,6 +4318,9 @@ function drawerTab(name, btn) {
 function closeDrawer(){
   document.getElementById('drawerOv').classList.remove('on');
   document.getElementById('drawer').classList.remove('on');
+  // Remove the hidden file input so it can't intercept future touches
+  const pick = document.getElementById('__imgpick_dImgWrap');
+  if (pick) pick.parentNode.removeChild(pick);
   // Reset to Details tab for next open
   document.querySelectorAll('.drawer-tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.drawer-tab').forEach(b => b.classList.remove('active'));
@@ -4365,7 +4368,10 @@ function openAddModal(){
 }
 function closeAdd(){
   document.getElementById('addOv').classList.remove('on');
-  ['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  // Remove the hidden file input so it can't intercept any future touches
+  const pick = document.getElementById('__imgpick_fImgWrap');
+  if (pick) pick.parentNode.removeChild(pick);
+  ['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});;
   document.getElementById('f_qty').value='1';
   const bulkCb = document.getElementById('f_bulk'); if(bulkCb) bulkCb.checked=false;
   const bulkFields = document.getElementById('f_bulk_fields'); if(bulkFields) bulkFields.style.display='none';
@@ -6329,7 +6335,31 @@ function renderImgSlots(wrapId, images, onAdd, onRemove) {
   wrap.className = 'img-slots';
   while (wrap.firstChild) wrap.removeChild(wrap.firstChild);
 
-  // Filled slots
+  // One truly hidden file input lives in the nearest modal/drawer so it
+  // has zero visual footprint and cannot extend hit-test areas.
+  // Using display:none (not visibility/opacity tricks) is the only way iOS
+  // Safari won't extend the touch responder beyond the visual slot bounds.
+  const inputId = '__imgpick_' + wrapId;
+  const existingPick = document.getElementById(inputId);
+  if (existingPick) existingPick.parentNode.removeChild(existingPick);
+
+  const pick = document.createElement('input');
+  pick.type = 'file';
+  pick.accept = 'image/*';
+  pick.id = inputId;
+  pick.style.display = 'none';
+  // Append to nearest scrollable ancestor so it's in the DOM but invisible
+  const container = wrap.closest('.modal, .drawer') || document.body;
+  container.appendChild(pick);
+
+  let _pendingSlot = 0;
+  pick.addEventListener('change', e => {
+    const file = e.target.files[0];
+    pick.value = '';
+    if (file) onAdd(file, _pendingSlot);
+  });
+
+  // Filled image slots
   images.forEach((dataUrl, idx) => {
     const slot = document.createElement('div');
     slot.className = 'img-slot filled';
@@ -6337,7 +6367,6 @@ function renderImgSlots(wrapId, images, onAdd, onRemove) {
     const img = document.createElement('img');
     img.src = dataUrl;
     img.alt = 'Photo ' + (idx + 1);
-    // Use touchend for lightbox on iOS so it doesn't conflict with remove btn
     img.addEventListener('click', () => openLightboxUrl(dataUrl));
     slot.appendChild(img);
 
@@ -6359,37 +6388,40 @@ function renderImgSlots(wrapId, images, onAdd, onRemove) {
     wrap.appendChild(slot);
   });
 
-  // Empty add-slot — label wraps a hidden input; label IS the tap target, 100% iOS safe
+  // Empty add slot — plain div + button, no label, no overlays
   if (images.length < 3) {
-    const inputId = wrapId + '_add_' + images.length + '_' + Date.now();
-    const slot = document.createElement('label');
+    const slot = document.createElement('div');
     slot.className = 'img-slot';
-    slot.htmlFor = inputId;
-    slot.style.cursor = 'pointer';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    // Button fills the entire slot — no invisible overlay, just a real button
+    btn.style.cssText = [
+      'position:absolute', 'inset:0', 'width:100%', 'height:100%',
+      'background:transparent', 'border:none', 'cursor:pointer',
+      'display:flex', 'flex-direction:column', 'align-items:center',
+      'justify-content:center', 'gap:4px', '-webkit-tap-highlight-color:transparent'
+    ].join(';');
 
     const icon = document.createElement('div');
     icon.className = 'img-slot-icon';
     icon.textContent = '+';
-    slot.appendChild(icon);
+    icon.style.pointerEvents = 'none';
+    btn.appendChild(icon);
 
     const lbl = document.createElement('div');
     lbl.className = 'img-slot-lbl';
     lbl.textContent = 'Add Photo';
-    slot.appendChild(lbl);
+    lbl.style.pointerEvents = 'none';
+    btn.appendChild(lbl);
 
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.id = inputId;
-    input.accept = 'image/*';
-    input.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none;';
     const slotIdx = images.length;
-    input.addEventListener('change', e => {
-      const file = e.target.files[0];
-      input.value = '';
-      if (file) onAdd(file, slotIdx);
+    btn.addEventListener('click', () => {
+      _pendingSlot = slotIdx;
+      pick.click();
     });
-    slot.appendChild(input);
 
+    slot.appendChild(btn);
     wrap.appendChild(slot);
   }
 }
@@ -6776,17 +6808,15 @@ function cropConfirm() {
       }
     }
 
-    // Defer DOM updates to next frame so iOS touch cycle has fully completed
-    requestAnimationFrame(() => {
-      if (ctxId === 'f') {
-        renderAddFormImages();
-      } else {
-        const itemId = ctxId || savedDrawId;
-        renderDrawerImg(itemId);
-        renderInv();
-      }
-      toast(didCompress ? 'Photo cropped & compressed ✓' : 'Photo cropped ✓');
-    });
+    // Update state then re-render immediately
+    if (ctxId === 'f') {
+      renderAddFormImages();
+    } else {
+      const itemId = ctxId || savedDrawId;
+      renderDrawerImg(itemId);
+      renderInv();
+    }
+    toast(didCompress ? 'Photo cropped & compressed ✓' : 'Photo cropped ✓');
   });
 }
 
