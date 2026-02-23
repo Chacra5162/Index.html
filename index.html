@@ -6326,8 +6326,29 @@ function renderImgSlots(wrapId, images, onAdd, onRemove) {
   const wrap = document.getElementById(wrapId);
   if (!wrap) return;
   wrap.className = 'img-slots';
-  // Build entirely with createElement — never embed data URLs in HTML attributes
   while (wrap.firstChild) wrap.removeChild(wrap.firstChild);
+
+  // One hidden file input lives outside the grid to avoid any hit-area leaking
+  const inputId = wrapId + '_fileinput';
+  let existingInput = document.getElementById(inputId);
+  if (!existingInput) {
+    existingInput = document.createElement('input');
+    existingInput.type = 'file';
+    existingInput.id = inputId;
+    existingInput.accept = 'image/*';
+    existingInput.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
+    document.body.appendChild(existingInput);
+  }
+  // Remove previous listener
+  const freshInput = existingInput.cloneNode(false);
+  existingInput.parentNode.replaceChild(freshInput, existingInput);
+
+  let pendingSlotIdx = 0;
+  freshInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    freshInput.value = '';
+    if (file) onAdd(file, pendingSlotIdx);
+  });
 
   // Filled slots
   images.forEach((dataUrl, idx) => {
@@ -6351,18 +6372,17 @@ function renderImgSlots(wrapId, images, onAdd, onRemove) {
     rm.className = 'img-slot-rm';
     rm.title = 'Remove';
     rm.textContent = '×';
+    rm.type = 'button';
     rm.addEventListener('click', e => { e.stopPropagation(); onRemove(idx); });
     slot.appendChild(rm);
 
     wrap.appendChild(slot);
   });
 
-  // Empty add slot — use transparent file input overlay (iOS-safe)
+  // Add slot — tap triggers the off-screen file input
   if (images.length < 3) {
     const slot = document.createElement('div');
     slot.className = 'img-slot';
-    slot.style.position = 'relative';
-    slot.style.overflow = 'hidden';
 
     const icon = document.createElement('div');
     icon.className = 'img-slot-icon';
@@ -6371,21 +6391,25 @@ function renderImgSlots(wrapId, images, onAdd, onRemove) {
 
     const lbl = document.createElement('div');
     lbl.className = 'img-slot-lbl';
-    lbl.textContent = images.length === 0 ? 'Add Photo' : 'Add Photo';
+    lbl.textContent = 'Add Photo';
     slot.appendChild(lbl);
 
-    // Transparent file input covers the entire slot — iOS requires direct tap on input
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0;';
     const slotIdx = images.length;
-    input.addEventListener('change', e => {
-      const file = e.target.files[0];
-      input.value = '';
-      if (file) onAdd(file, slotIdx);
+    // Use touchend for iOS — touchstart can be swallowed by scroll detection
+    let _tapped = false;
+    slot.addEventListener('touchend', e => {
+      e.preventDefault();
+      if (_tapped) return;
+      _tapped = true;
+      setTimeout(() => { _tapped = false; }, 500);
+      pendingSlotIdx = slotIdx;
+      freshInput.click();
     });
-    slot.appendChild(input);
+    slot.addEventListener('click', e => {
+      // Fallback for desktop / non-touch
+      pendingSlotIdx = slotIdx;
+      freshInput.click();
+    });
 
     wrap.appendChild(slot);
   }
@@ -6503,8 +6527,8 @@ function openCropModal(dataUrl, mimeType, ctx) {
     canvas.addEventListener('touchend',   cropTouchEnd,   { passive: false });
 
     const ov = document.getElementById('cropOv');
-    ov.classList.add('on');
     ov.style.display = 'flex';
+    ov.classList.add('on');
   };
   img.src = dataUrl;
 }
@@ -6720,7 +6744,7 @@ function cropSetAspect(aw, ah) {
 function cropCancel() {
   const ov = document.getElementById('cropOv');
   ov.classList.remove('on');
-  ov.style.display = '';
+  ov.style.display = 'none';
   _crop = { ctx: null, origDataUrl: null, mimeType: null, img: null, scale: 1, rect: null, drag: null, dragStart: null, aspect: null };
 }
 
@@ -6739,17 +6763,19 @@ function cropConfirm() {
 
   const cropped = out.toDataURL('image/jpeg', 0.92);
 
-  // Close overlay immediately (before async compression)
+  // Close overlay immediately — use explicit 'none' not '' so iOS definitely hides it
   const ov = document.getElementById('cropOv');
   ov.classList.remove('on');
-  ov.style.display = '';
+  ov.style.display = 'none';
 
-  // Capture activeDrawId now before anything can change it
+  // Capture state before any async work
+  const savedCtx = ctx;
   const savedDrawId = activeDrawId;
+  _crop = { ctx: null, origDataUrl: null, mimeType: null, img: null, scale: 1, rect: null, drag: null, dragStart: null, aspect: null };
 
   compressImage(cropped, mimeType, (compressed, didCompress) => {
     // ctx format: 'f:slotIdx' for add form, 'itemId:slotIdx' for drawer
-    const [ctxId, slotStr] = (ctx || '').split(':');
+    const [ctxId, slotStr] = (savedCtx || '').split(':');
     const slotIdx = parseInt(slotStr) || 0;
 
     if (ctxId === 'f') {
@@ -6771,8 +6797,7 @@ function cropConfirm() {
       }
     }
 
-    // Defer DOM updates to next frame — iOS Safari drops button taps if DOM is
-    // modified during an async callback that overlaps the touch event cycle
+    // Defer DOM updates to next frame so iOS touch cycle has fully completed
     requestAnimationFrame(() => {
       if (ctxId === 'f') {
         renderAddFormImages();
@@ -6781,12 +6806,8 @@ function cropConfirm() {
         renderDrawerImg(itemId);
         renderInv();
       }
-      if (didCompress) toast('Photo cropped & compressed ✓');
-      else toast('Photo cropped ✓');
+      toast(didCompress ? 'Photo cropped & compressed ✓' : 'Photo cropped ✓');
     });
-
-    // Reset crop state
-    _crop = { ctx: null, origDataUrl: null, mimeType: null, img: null, scale: 1, rect: null, drag: null, dragStart: null, aspect: null };
   });
 }
 
