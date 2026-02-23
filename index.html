@@ -4400,11 +4400,11 @@ function addItem(){
   const price=parseFloat(document.getElementById('f_price').value)||0;
   if(!name){toast('Name required',true);return;}
   if(!price){toast('Price required',true);return;}
+  const cat=document.getElementById('f_cat').value.trim();
   const skuDate = new Date().toISOString().slice(0,10).replace(/-/g,'');
   const skuCat = (cat||'GEN').trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4).padEnd(3,'X');
   const skuRand = Math.random().toString(36).slice(2,5).toUpperCase();
   const autoSku = skuCat + '-' + skuDate + '-' + skuRand;
-  const cat=document.getElementById('f_cat').value.trim();
   const selPlats=getSelectedPlats('f_plat_picker');
   const platform=selPlats[0]||'Other';
   const isBulk = document.getElementById('f_bulk')?.checked || false;
