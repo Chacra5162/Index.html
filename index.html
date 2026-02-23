@@ -543,6 +543,68 @@ main { padding: 24px 32px; max-width: 1440px; margin: 0 auto; }
 .img-upload-txt  { font-size: 11px; color: var(--muted2); }
 .img-upload-hint { font-size: 10px; color: var(--muted); }
 
+/* Multi-image grid */
+.img-slots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.img-slot {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px dashed var(--border2);
+  cursor: pointer;
+  transition: border-color 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 80px;
+}
+.img-slot:hover { border-color: var(--accent); background: rgba(200,255,87,0.04); }
+.img-slot.filled { border-style: solid; border-color: var(--border); }
+.img-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.img-slot-icon { font-size: 20px; color: var(--muted2); }
+.img-slot-lbl  { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.img-slot-rm {
+  position: absolute;
+  top: 4px; right: 4px;
+  background: rgba(0,0,0,0.75);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 20px; height: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.img-slot-rm:hover { background: var(--danger); }
+.img-slot-badge {
+  position: absolute;
+  bottom: 4px; left: 4px;
+  background: rgba(200,255,87,0.9);
+  color: #0a0a0f;
+  font-size: 8px;
+  font-family: 'DM Mono', monospace;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 2px;
+  letter-spacing: 0.5px;
+}
+
 .img-preview-wrap {
   position: relative;
   display: inline-block;
@@ -2570,8 +2632,8 @@ textarea { resize:vertical; min-height:70px; }
     <!-- TAB: Photo & Barcode -->
     <div class="drawer-tab-panel" id="dtab-media">
       <div class="dsec" id="dImgSec">
-        <div class="dsec-ttl">Item Photo</div>
-        <div id="dImgWrap"></div>
+        <div class="dsec-ttl">Item Photos <span style="color:var(--muted);font-weight:400;font-size:10px">(up to 3)</span></div>
+        <div id="dImgWrap" class="img-slots"></div>
       </div>
       <div class="dsec" id="dBarcodeSec">
         <div class="dsec-ttl">Barcode</div>
@@ -2846,15 +2908,8 @@ textarea { resize:vertical; min-height:70px; }
           <div id="f_pkg_suggestion"></div>
         </div>
         <div class="fgrp full">
-          <label>Item Photo</label>
-          <div id="fImgWrap">
-            <div class="img-upload-zone" id="fImgZone" onclick="document.getElementById('f_imgInput').click()" ondragover="imgDragOver(event,'fImgZone')" ondragleave="imgDragLeave('fImgZone')" ondrop="imgDrop(event,'f')">
-              <input type="file" id="f_imgInput" accept="image/*" onchange="imgSelected(event,'f')" style="display:none">
-              <div class="img-upload-icon">📷</div>
-              <div class="img-upload-txt">Click or drag & drop to upload photo</div>
-              <div class="img-upload-hint">JPG, PNG, WEBP · Auto-compressed</div>
-            </div>
-          </div>
+          <label>Item Photos <span style="color:var(--muted);font-weight:400;font-size:10px">(up to 3)</span></label>
+          <div id="fImgWrap" class="img-slots"></div>
         </div>
       </div>
       <div class="profit-prev">
@@ -3314,6 +3369,7 @@ async function pushToCloud() {
   const invRows = inv.map(i => {
     const d = { ...i };
     if (d.image && d.image.length > 500000) delete d.image;
+    if (d.images) d.images = d.images.map(img => (img && img.length > 500000) ? null : img).filter(Boolean);
     return { id: i.id, account_id: accountId, data: d, updated_at: new Date().toISOString() };
   });
 
@@ -4083,8 +4139,8 @@ function renderInv() {
     return `<tr data-id="${item.id}" class="${isSel?'sel':''}">
       <td class="cb-col"><input type="checkbox" ${isSel?'checked':''} onchange="toggleSel('${item.id}',this)"></td>
       <td><span class="drag-handle" draggable="true" ondragstart="dStart(event,'${item.id}')" ondragover="dOver(event)" ondrop="dDrop(event,'${item.id}')">⠿</span></td>
-      <td>${item.image
-        ? `<img class="item-thumb" src="${item.image}" alt="${item.name}" onclick="openLightbox('${item.id}')">`
+      <td>${(getItemImages(item)[0])
+        ? `<img class="item-thumb" src="${getItemImages(item)[0]}" alt="${item.name}" onclick="openLightbox('${item.id}')">`
         : `<div class="item-thumb-placeholder" title="Add photo" onclick="openDrawer('${item.id}')">＋</div>`
       }</td>
       <td>
@@ -4241,7 +4297,7 @@ function openDrawer(id) {
   buildPlatPicker('d_plat_picker', getPlatforms(item));
   populateSubcatSelect('d_subcat', item.category||'', item.subcategory||'');
   populateSubtypeSelect('d_subtype', item.subcategory||'', item.subtype||'');
-  renderDrawerImg(item.id, item.image || null);
+  renderDrawerImg(item.id);
   renderDrawerBarcode(item);
   loadDimsToForm('d', item);
   suggestPackaging('d');
@@ -4295,14 +4351,24 @@ function saveDrawer(){
 async function delCurrent(){const item=inv.find(i=>i.id===activeDrawId);if(!confirm(`Delete "${item?.name}"?`))return;const id=activeDrawId;inv=inv.filter(i=>i.id!==id);save();closeDrawer();refresh();toast('Item deleted');await pushDeleteToCloud('ft_inventory',[id]);autoSync();}
 
 // ADD MODAL
-function openAddModal(){document.getElementById('addOv').classList.add('on');}
+function openAddModal(){
+  const ov = document.getElementById('addOv');
+  ov.classList.add('on');
+  pendingAddImages = [];
+  renderAddFormImages();
+  // Reset scroll to top so user always starts at the beginning of the form
+  const bd = ov.querySelector('.modal-bd');
+  if (bd) bd.scrollTop = 0;
+  const modal = ov.querySelector('.modal');
+  if (modal) modal.scrollTop = 0;
+}
 function closeAdd(){
   document.getElementById('addOv').classList.remove('on');
   ['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f_qty').value='1';
   const bulkCb = document.getElementById('f_bulk'); if(bulkCb) bulkCb.checked=false;
   const bulkFields = document.getElementById('f_bulk_fields'); if(bulkFields) bulkFields.style.display='none';
-  pendingAddImage=null;renderImgZone('fImgWrap','f');clearDimForm('f');buildPlatPicker('f_plat_picker',[]);prevProfit();
+  pendingAddImages=[];renderAddFormImages();clearDimForm('f');buildPlatPicker('f_plat_picker',[]);prevProfit();
 }
 function toggleBulkFields(pfx) {
   const bulk = document.getElementById(pfx + '_bulk')?.checked;
@@ -4334,13 +4400,16 @@ function addItem(){
   const price=parseFloat(document.getElementById('f_price').value)||0;
   if(!name){toast('Name required',true);return;}
   if(!price){toast('Price required',true);return;}
-  const autoSku='SKU-'+Date.now().toString(36).toUpperCase();
+  const skuDate = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const skuCat = (cat||'GEN').trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4).padEnd(3,'X');
+  const skuRand = Math.random().toString(36).slice(2,5).toUpperCase();
+  const autoSku = skuCat + '-' + skuDate + '-' + skuRand;
   const cat=document.getElementById('f_cat').value.trim();
   const selPlats=getSelectedPlats('f_plat_picker');
   const platform=selPlats[0]||'Other';
   const isBulk = document.getElementById('f_bulk')?.checked || false;
   const qty = isBulk ? (parseInt(document.getElementById('f_qty').value)||1) : 1;
-  inv.push({id:uid(),name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:(document.getElementById('f_subcat_txt').value||'').trim(),subtype:document.getElementById('f_subtype').value||'',platform,platforms:selPlats,cost:parseFloat(document.getElementById('f_cost').value)||0,price,qty,bulk:isBulk,fees:parseFloat(document.getElementById('f_fees').value)||0,ship:parseFloat(document.getElementById('f_ship').value)||0,lowAlert:isBulk?(parseInt(document.getElementById('f_alert').value)||2):2,notes:document.getElementById('f_notes').value.trim(),image:pendingAddImage||null,...getDimsFromForm('f'),added:new Date().toISOString()});
+  inv.push({id:uid(),name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:(document.getElementById('f_subcat_txt').value||'').trim(),subtype:document.getElementById('f_subtype').value||'',platform,platforms:selPlats,cost:parseFloat(document.getElementById('f_cost').value)||0,price,qty,bulk:isBulk,fees:parseFloat(document.getElementById('f_fees').value)||0,ship:parseFloat(document.getElementById('f_ship').value)||0,lowAlert:isBulk?(parseInt(document.getElementById('f_alert').value)||2):2,notes:document.getElementById('f_notes').value.trim(),images:pendingAddImages.slice(),image:pendingAddImages[0]||null,...getDimsFromForm('f'),added:new Date().toISOString()});
   save(); closeAdd(); refresh(); _sfx.create(); toast('Item added ✓');
 }
 
@@ -5136,8 +5205,8 @@ function printStickers(selectedOnly, ids) {
   const stickersHtml = items.map(item => {
     const val   = makeBarcodeValue(item);
     const price = '$' + Number(item.price||0).toFixed(2);
-    const imgHtml = item.image
-      ? `<img class="st-photo" src="${item.image}" alt="">`
+    const imgHtml = getItemImages(item)[0]
+      ? `<img class="st-photo" src="${getItemImages(item)[0]}" alt="">`
       : '';
     const cats = [item.category, item.subcategory, item.subtype].filter(Boolean).join(' › ');
     return `
@@ -6227,11 +6296,21 @@ document.addEventListener('keydown', e => {
 // ── IMAGE HANDLING ──────────────────────────────────────────────────────────
 
 // Shared state for pending image in add modal
-let pendingAddImage = null;
+let pendingAddImages = []; // up to 3 images for the add form
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function getItemImages(item) {
+  // Backwards compat: old items have item.image (string), new have item.images (array)
+  if (item.images && item.images.length) return item.images;
+  if (item.image) return [item.image];
+  return [];
+}
 
 function imgSelected(event, ctx) {
   const file = event.target.files[0];
   if (!file) return;
+  event.target.value = ''; // reset so same file can be re-selected
   readImgFile(file, ctx);
 }
 
@@ -6239,6 +6318,111 @@ function readImgFile(file, ctx) {
   const reader = new FileReader();
   reader.onload = e => openCropModal(e.target.result, file.type, ctx);
   reader.readAsDataURL(file);
+}
+
+// ── Render 3-slot image grid ──────────────────────────────────────────────────
+
+function renderImgSlots(wrapId, images, onAdd, onRemove) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  wrap.className = 'img-slots';
+  wrap.innerHTML = '';
+
+  // Render filled slots
+  images.forEach((dataUrl, idx) => {
+    const slot = document.createElement('div');
+    slot.className = 'img-slot filled';
+    slot.innerHTML = `
+      <img src="${dataUrl}" alt="Photo ${idx+1}" onclick="openLightboxUrl('${dataUrl}')">
+      ${idx === 0 ? '<span class="img-slot-badge">MAIN</span>' : ''}
+      <button class="img-slot-rm" title="Remove">×</button>`;
+    slot.querySelector('.img-slot-rm').addEventListener('click', e => {
+      e.stopPropagation();
+      onRemove(idx);
+    });
+    wrap.appendChild(slot);
+  });
+
+  // Add empty slot if under limit
+  if (images.length < 3) {
+    const slot = document.createElement('div');
+    slot.className = 'img-slot';
+    const inputId = wrapId + '_input_' + images.length;
+    slot.innerHTML = `
+      <input type="file" id="${inputId}" accept="image/*" style="display:none">
+      <div class="img-slot-icon">+</div>
+      <div class="img-slot-lbl">${images.length === 0 ? 'Add Photo' : 'Add Photo'}</div>`;
+    slot.addEventListener('click', () => document.getElementById(inputId).click());
+    slot.querySelector('input').addEventListener('change', e => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (file) onAdd(file, images.length);
+    });
+    wrap.appendChild(slot);
+  }
+}
+
+// ── Add Item form images ──────────────────────────────────────────────────────
+
+function renderAddFormImages() {
+  renderImgSlots(
+    'fImgWrap',
+    pendingAddImages,
+    (file, slotIdx) => readImgFile(file, 'f:' + slotIdx),
+    (idx) => {
+      pendingAddImages.splice(idx, 1);
+      renderAddFormImages();
+    }
+  );
+}
+
+// ── Drawer images ─────────────────────────────────────────────────────────────
+
+function renderDrawerImg(itemId) {
+  const item = inv.find(i => i.id === itemId);
+  const images = item ? getItemImages(item) : [];
+  renderImgSlots(
+    'dImgWrap',
+    images,
+    (file, slotIdx) => readImgFile(file, itemId + ':' + slotIdx),
+    (idx) => {
+      if (!item) return;
+      const imgs = getItemImages(item);
+      imgs.splice(idx, 1);
+      item.images = imgs;
+      item.image  = imgs[0] || null; // keep compat field in sync
+      save();
+      renderDrawerImg(itemId);
+      renderInv();
+    }
+  );
+}
+
+// Drag-and-drop handlers (drawer only — not critical path, keep simple)
+function imgDragOver(e, zoneId) {
+  e.preventDefault();
+  document.getElementById(zoneId)?.classList.add('drag-over');
+}
+function imgDragLeave(zoneId) {
+  document.getElementById(zoneId)?.classList.remove('drag-over');
+}
+function imgDrop(e, ctx) {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) readImgFile(file, ctx + ':0');
+}
+
+// ── Lightbox (supports direct URL) ───────────────────────────────────────────
+function openLightbox(itemId) {
+  const item = inv.find(i => i.id === itemId);
+  const imgs = item ? getItemImages(item) : [];
+  if (!imgs.length) return;
+  openLightboxUrl(imgs[0]);
+}
+function openLightboxUrl(url) {
+  if (!url) return;
+  document.getElementById('lightboxImg').src = url;
+  document.getElementById('lightbox').classList.add('on');
 }
 
 // ── CROP ENGINE ───────────────────────────────────────────────────────────────
@@ -6289,7 +6473,9 @@ function openCropModal(dataUrl, mimeType, ctx) {
     canvas.addEventListener('touchmove',  cropTouchMove,  { passive: false });
     canvas.addEventListener('touchend',   cropTouchEnd,   { passive: false });
 
-    document.getElementById('cropOv').classList.add('on');
+    const ov = document.getElementById('cropOv');
+    ov.classList.add('on');
+    ov.style.display = 'flex';
   };
   img.src = dataUrl;
 }
@@ -6503,7 +6689,9 @@ function cropSetAspect(aw, ah) {
 }
 
 function cropCancel() {
-  document.getElementById('cropOv').classList.remove('on');
+  const ov = document.getElementById('cropOv');
+  ov.classList.remove('on');
+  ov.style.display = '';
   _crop = { ctx: null, origDataUrl: null, mimeType: null, img: null, scale: 1, rect: null, drag: null, dragStart: null, aspect: null };
 }
 
@@ -6521,24 +6709,53 @@ function cropConfirm() {
   out.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, out.width, out.height);
 
   const cropped = out.toDataURL('image/jpeg', 0.92);
-  document.getElementById('cropOv').classList.remove('on');
+
+  // Close overlay immediately (before async compression)
+  const ov = document.getElementById('cropOv');
+  ov.classList.remove('on');
+  ov.style.display = '';
+
+  // Capture activeDrawId now before anything can change it
+  const savedDrawId = activeDrawId;
 
   compressImage(cropped, mimeType, (compressed, didCompress) => {
     if (didCompress) toast('Photo cropped & compressed ✓');
     else toast('Photo cropped ✓');
 
-    if (ctx === 'f') {
-      pendingAddImage = compressed;
-      renderImgPreview('fImgWrap', compressed, () => { pendingAddImage = null; renderImgZone('fImgWrap', 'f'); });
+    // ctx format: 'f:slotIdx' for add form, 'itemId:slotIdx' for drawer
+    const [ctxId, slotStr] = (ctx || '').split(':');
+    const slotIdx = parseInt(slotStr) || 0;
+
+    if (ctxId === 'f') {
+      // Add item form
+      if (slotIdx >= pendingAddImages.length) {
+        pendingAddImages.push(compressed);
+      } else {
+        pendingAddImages[slotIdx] = compressed;
+      }
+      renderAddFormImages();
     } else {
-      const item = inv.find(i => i.id === ctx);
-      if (item) { item.image = compressed; save(); }
-      renderDrawerImg(ctx, compressed);
+      // Drawer — ctxId is item id
+      const itemId = ctxId || savedDrawId;
+      const item = inv.find(i => i.id === itemId);
+      if (item) {
+        const imgs = getItemImages(item);
+        if (slotIdx >= imgs.length) {
+          imgs.push(compressed);
+        } else {
+          imgs[slotIdx] = compressed;
+        }
+        item.images = imgs;
+        item.image  = imgs[0] || null; // keep compat field
+        save();
+      }
+      renderDrawerImg(itemId);
       renderInv();
     }
-  });
 
-  cropCancel();
+    // Reset crop state after callback completes
+    _crop = { ctx: null, origDataUrl: null, mimeType: null, img: null, scale: 1, rect: null, drag: null, dragStart: null, aspect: null };
+  });
 }
 
 /**
@@ -6596,73 +6813,7 @@ function compressImage(dataUrl, mimeType, callback) {
   img.src = dataUrl;
 }
 
-function renderImgZone(wrapId, ctx) {
-  document.getElementById(wrapId).innerHTML = `
-    <div class="img-upload-zone" id="${ctx}ImgZone"
-      onclick="document.getElementById('${ctx}_imgInput').click()"
-      ondragover="imgDragOver(event,'${ctx}ImgZone')"
-      ondragleave="imgDragLeave('${ctx}ImgZone')"
-      ondrop="imgDrop(event,'${ctx}')">
-      <input type="file" id="${ctx}_imgInput" accept="image/*" onchange="imgSelected(event,'${ctx}')" style="display:none">
-      <div class="img-upload-icon">📷</div>
-      <div class="img-upload-txt">Click or drag & drop to upload photo</div>
-      <div class="img-upload-hint">JPG, PNG, WEBP · Auto-compressed</div>
-    </div>`;
-}
-
-function renderImgPreview(wrapId, dataUrl, onRemove) {
-  document.getElementById(wrapId).innerHTML = `
-    <div class="img-preview-wrap">
-      <img class="img-preview" src="${dataUrl}" alt="Item photo">
-      <button class="img-remove-btn" title="Remove photo">×</button>
-    </div>`;
-  document.querySelector(`#${wrapId} .img-remove-btn`).addEventListener('click', onRemove);
-}
-
-function renderDrawerImg(itemId, dataUrl) {
-  const wrapId = 'dImgWrap';
-  if (dataUrl) {
-    renderImgPreview(wrapId, dataUrl, () => {
-      const item = inv.find(i => i.id === itemId);
-      if (item) { item.image = null; save(); }
-      renderDrawerImg(itemId, null);
-      renderInv();
-    });
-  } else {
-    renderImgZone(wrapId, itemId); // use item id as ctx so file input routes back to drawer
-    // override: drawer file input targets item id
-    const zone = document.getElementById(`${itemId}ImgZone`);
-    if (zone) {
-      const fi = document.getElementById(`${itemId}_imgInput`);
-      if (fi) fi.addEventListener('change', e => readImgFile(e.target.files[0], itemId));
-    }
-  }
-}
-
-// Drag-and-drop handlers
-function imgDragOver(e, zoneId) {
-  e.preventDefault();
-  document.getElementById(zoneId)?.classList.add('drag-over');
-}
-function imgDragLeave(zoneId) {
-  document.getElementById(zoneId)?.classList.remove('drag-over');
-}
-function imgDrop(e, ctx) {
-  e.preventDefault();
-  const zoneId = ctx + 'ImgZone';
-  document.getElementById(zoneId)?.classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if (file && file.type.startsWith('image/')) readImgFile(file, ctx);
-}
-
 // LIGHTBOX
-function openLightbox(itemId) {
-  const item = inv.find(i => i.id === itemId);
-  if (!item?.image) return;
-  document.getElementById('lightboxImg').src = item.image;
-  document.getElementById('lightboxName').textContent = item.name;
-  document.getElementById('lightbox').classList.add('on');
-}
 function closeLightbox() {
   document.getElementById('lightbox').classList.remove('on');
   document.getElementById('lightboxImg').src = '';
