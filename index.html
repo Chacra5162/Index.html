@@ -2219,6 +2219,186 @@ textarea { resize:vertical; min-height:70px; }
 @media (max-width: 480px) {
   .bnav-btn { padding: 6px 4px; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   VISUAL ENHANCEMENTS — pure CSS, no HTML changes
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Ambient colored orbs behind all content ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 800px 600px at 8% 65%,  rgba(200,255,87,0.04)  0%, transparent 70%),
+    radial-gradient(ellipse 650px 800px at 92% 12%, rgba(123,97,255,0.05)  0%, transparent 70%),
+    radial-gradient(ellipse 500px 400px at 60% 90%, rgba(255,107,53,0.03)  0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  animation: ambientDrift 30s ease-in-out infinite alternate;
+}
+@keyframes ambientDrift {
+  0%   { transform: translate(0px,  0px) scale(1);    }
+  33%  { transform: translate(20px,-10px) scale(1.04); }
+  66%  { transform: translate(-10px,15px) scale(0.97); }
+  100% { transform: translate(25px,  8px) scale(1.06); }
+}
+
+/* ── Logo — neon glow ── */
+.logo span {
+  text-shadow:
+    0 0 12px rgba(200,255,87,0.7),
+    0 0 30px rgba(200,255,87,0.3),
+    0 0 60px rgba(200,255,87,0.1);
+}
+
+/* ── Header — replace flat border with gradient accent line ── */
+header { border-bottom-color: transparent; position: relative; }
+header::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(200,255,87,0.35) 20%,
+    rgba(200,255,87,0.15) 50%,
+    rgba(123,97,255,0.35) 80%,
+    transparent 100%
+  );
+}
+
+/* ── Nav tab active — glow text ── */
+.nav-tab.active {
+  text-shadow: 0 0 14px rgba(200,255,87,0.5);
+}
+
+/* ── Stat card left bars — glowing ── */
+.stat-card.c1::after { box-shadow: 3px 0 16px rgba(200,255,87,0.7); }
+.stat-card.c2::after { box-shadow: 3px 0 16px rgba(255,107,53,0.7); }
+.stat-card.c3::after { box-shadow: 3px 0 16px rgba(123,97,255,0.7); }
+.stat-card.c4::after { box-shadow: 3px 0 16px rgba(87,255,154,0.7); }
+.stat-card.c5::after { box-shadow: 3px 0 16px rgba(255,184,0,0.7);  }
+
+/* ── Stat card — radial color bloom on hover (::before not yet used) ── */
+.stat-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+.c1::before { background: radial-gradient(ellipse 130% 130% at 0% 50%, rgba(200,255,87,0.10) 0%, transparent 60%); }
+.c2::before { background: radial-gradient(ellipse 130% 130% at 0% 50%, rgba(255,107,53,0.10) 0%, transparent 60%); }
+.c3::before { background: radial-gradient(ellipse 130% 130% at 0% 50%, rgba(123,97,255,0.10) 0%, transparent 60%); }
+.c4::before { background: radial-gradient(ellipse 130% 130% at 0% 50%, rgba(87,255,154,0.10) 0%, transparent 60%); }
+.c5::before { background: radial-gradient(ellipse 130% 130% at 0% 50%, rgba(255,184,0,0.10)  0%, transparent 60%); }
+.stat-card:hover::before { opacity: 1; }
+
+/* ── Stat values — glow matching their accent color ── */
+.c1 .stat-value { text-shadow: 0 0 24px rgba(200,255,87,0.5); }
+.c2 .stat-value { text-shadow: 0 0 24px rgba(255,107,53,0.5); }
+.c3 .stat-value { text-shadow: 0 0 24px rgba(123,97,255,0.5); }
+.c4 .stat-value { text-shadow: 0 0 24px rgba(87,255,154,0.5); }
+.c5 .stat-value { text-shadow: 0 0 24px rgba(255,184,0,0.5);  }
+
+/* ── Panels — top accent hairline ── */
+.panel {
+  border-top-color: rgba(200,255,87,0.14);
+  box-shadow: 0 1px 0 0 rgba(200,255,87,0.05) inset;
+}
+
+/* ── Filter chips — active glow ── */
+.filter-chip.active {
+  background: rgba(200,255,87,0.07);
+  box-shadow: 0 0 10px rgba(200,255,87,0.15), inset 0 0 8px rgba(200,255,87,0.05);
+}
+
+/* ── Inventory table — row hover left accent bar ── */
+.inv-table tbody tr { position: relative; }
+.inv-table tbody tr::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--accent);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 0.18s ease;
+}
+.inv-table tbody tr:hover::before { transform: scaleY(1); }
+.inv-table tbody tr:hover { background: rgba(200,255,87,0.03); }
+
+/* ── Primary button — shimmer sweep on hover + glow ── */
+.btn-primary { position: relative; overflow: hidden; }
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  top: -10%; left: -80%;
+  width: 50%; height: 120%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.32), transparent);
+  transform: skewX(-18deg);
+  transition: left 0s;
+  pointer-events: none;
+}
+.btn-primary:hover::after {
+  left: 140%;
+  transition: left 0.5s ease;
+}
+.btn-primary:hover {
+  box-shadow: 0 4px 22px rgba(200,255,87,0.35);
+}
+
+/* ── Secondary button — hover border glow ── */
+.btn-secondary:hover {
+  box-shadow: 0 0 10px rgba(200,255,87,0.08);
+}
+
+/* ── Drawer — glowing left edge ── */
+.drawer { border-left-color: rgba(200,255,87,0.12); }
+.drawer.on {
+  box-shadow: -8px 0 40px rgba(0,0,0,0.5), -1px 0 0 rgba(200,255,87,0.08);
+}
+
+/* ── Modal — subtle glow ── */
+.modal {
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(200,255,87,0.06);
+}
+
+/* ── Toast — more punchy ── */
+.toast {
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4), 0 0 20px rgba(200,255,87,0.2);
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+}
+.toast.err {
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4), 0 0 20px rgba(255,71,87,0.25);
+}
+
+/* ── Category tag — small glow ── */
+.cat-tag {
+  box-shadow: 0 0 8px rgba(123,97,255,0.2);
+}
+
+/* ── Breakdown summary cards — accent top line ── */
+.bd-sum-card {
+  border-top: 1px solid rgba(200,255,87,0.1);
+  box-shadow: 0 1px 0 rgba(200,255,87,0.04) inset;
+}
+
+/* ── Sync dot connected — stronger pulse ── */
+.sync-dot.connected {
+  box-shadow: 0 0 0 3px rgba(87,255,154,0.15), 0 0 10px rgba(87,255,154,0.6);
+}
+
+/* ── Scrollbar — styled to match ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(200,255,87,0.3); }
+
+/* ── Selection highlight ── */
+::selection { background: rgba(200,255,87,0.2); color: var(--text); }
 </style>
 </head>
 <body>
