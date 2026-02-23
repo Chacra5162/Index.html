@@ -562,34 +562,41 @@ main { padding: 24px 32px; max-width: 1440px; margin: 0 auto; }
   align-items: center;
   justify-content: center;
   gap: 4px;
-  overflow: hidden;
-  -webkit-overflow-scrolling: auto;
+  /* No overflow:hidden — it clips the file input hit area on iOS/Chrome */
 }
 .img-slot:hover { border-color: var(--accent); background: rgba(200,255,87,0.04); }
 .img-slot.filled { border-style: solid; border-color: var(--border); }
 .img-slot.img-slot-locked { cursor: default; pointer-events: none; }
 .img-slot-add { display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; }
-/* Transparent file input covers the slot — direct tap = iOS opens native picker */
+/* File input covers the slot exactly — user taps it directly, no .click() needed */
 .img-slot-input {
   position: absolute;
-  inset: 0;
+  top: 0; left: 0;
   width: 100%;
   height: 100%;
   opacity: 0;
   cursor: pointer;
-  font-size: 0;
+  margin: 0;
+  padding: 0;
+  font-size: 16px; /* 16px prevents iOS zoom, must not be 0 */
+  -webkit-appearance: none;
 }
 .img-slot img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  border-radius: 4px;
+  pointer-events: none;
 }
 .img-slot-icon { font-size: 20px; color: var(--muted2); }
 .img-slot-lbl  { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .img-slot-rm {
   position: absolute;
   top: 4px; right: 4px;
+  z-index: 2;
   background: rgba(0,0,0,0.75);
   color: #fff;
   border: none;
