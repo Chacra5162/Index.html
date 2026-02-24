@@ -1744,6 +1744,49 @@ textarea { resize:vertical; min-height:70px; }
 .id-loading-text { margin-top: 12px; font-size: 13px; color: var(--muted); }
 .id-loading-sub { margin-top: 4px; font-size: 11px; color: var(--muted); opacity: 0.6; }
 
+/* ── PRICE DROP ALERTS ──────────────────────────────────────────────────── */
+.price-alerts-wrap {
+  margin: 0 0 4px;
+  background: rgba(255,184,0,0.04);
+  border-bottom: 1px solid rgba(255,184,0,0.15);
+  padding: 14px 20px;
+}
+.price-alerts-hdr {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+}
+.price-alerts-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; color: var(--warn);
+  display: flex; align-items: center; gap: 6px;
+}
+.price-alerts-dismiss {
+  background: none; border: 1px solid rgba(255,184,0,0.3); color: var(--warn); font-size: 10px;
+  padding: 3px 10px; cursor: pointer; font-family: 'DM Mono', monospace;
+}
+.price-alert-item {
+  display: flex; align-items: center; gap: 12px; padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.price-alert-item:last-child { border-bottom: none; }
+.price-alert-info { flex: 1; min-width: 0; }
+.price-alert-name {
+  font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  cursor: pointer;
+}
+.price-alert-name:hover { color: var(--accent); }
+.price-alert-meta { font-size: 10px; color: var(--muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
+.price-alert-action {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.price-alert-suggest {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; color: var(--warn);
+}
+.price-alert-btn {
+  background: none; border: 1px solid var(--warn); color: var(--warn); font-size: 10px;
+  padding: 4px 10px; cursor: pointer; font-family: 'DM Mono', monospace;
+  transition: all 0.15s;
+}
+.price-alert-btn:hover { background: var(--warn); color: #0a0a0f; }
+
 .id-error { text-align: center; padding: 24px; color: var(--danger); font-size: 13px; }
 .id-error button { margin-top: 12px; }
 
@@ -2621,6 +2664,7 @@ header::after {
     <div class="alert-items" id="alertItems"></div>
     <button class="alert-x" onclick="document.getElementById('alertBanner').classList.remove('on')">×</button>
   </div>
+  <div id="priceAlerts" style="display:none"></div>
   <div class="dash-grid">
     <div class="panel">
       <div class="panel-header">
@@ -3351,7 +3395,7 @@ header::after {
       <div class="form-grid">
         <div class="fgrp">
           <label>Sold Price ($) *</label>
-          <input type="number" id="s_price" placeholder="0.00" step="0.01">
+          <input type="number" id="s_price" placeholder="0.00" step="0.01" oninput="updateFeeEstimate()">
         </div>
         <div class="fgrp">
           <label>Price Is</label>
@@ -3369,8 +3413,9 @@ header::after {
         </div>
         <div class="fgrp"><label>Qty Sold *</label><input type="number" id="s_qty" value="1" min="1" oninput="updateSalePriceHint()"></div>
         <div class="fgrp full"><label>Platform Sold On *</label>
-          <select id="s_platform" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:9px 12px;font-family:'DM Mono',monospace;font-size:12px;width:100%">
+          <select id="s_platform" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:9px 12px;font-family:'DM Mono',monospace;font-size:12px;width:100%" onchange="updateFeeEstimate()">
           </select>
+          <div id="s_fee_hint" style="font-size:10px;color:var(--muted);margin-top:4px;font-family:'DM Mono',monospace;display:none"></div>
         </div>
         <div class="fgrp"><label>Platform Fees ($)</label><input type="number" id="s_fees" placeholder="0.00" step="0.01"></div>
         <div class="fgrp"><label>Shipping Cost ($)</label><input type="number" id="s_ship" placeholder="0.00" step="0.01"></div>
@@ -4134,6 +4179,45 @@ const platCls = p => ({
   '1stDibs':'plt-1stdibs','Swappa':'plt-swappa','Decluttr':'plt-decluttr',
 }[p]||'plt-other');
 const sc = (qty, alert, bulk) => !bulk ? (qty===0?'low':'ok') : qty===0?'low':qty<=(alert||2)?'warn':'ok';
+
+// ── PLATFORM FEE SCHEDULES ────────────────────────────────────────────────
+// Fees as percentage (0.13 = 13%). Some have flat fees added.
+const PLATFORM_FEES = {
+  'eBay':                { pct: 0.1325, flat: 0.30, label: '13.25% + $0.30' },
+  'Amazon':              { pct: 0.15,   flat: 0,    label: '15% referral' },
+  'Etsy':                { pct: 0.065,  flat: 0.20, label: '6.5% + $0.20 + 3% processing', processing: 0.03 },
+  'Facebook Marketplace':{ pct: 0.05,   flat: 0,    label: '5% (or $0.40 min)' },
+  'Depop':               { pct: 0.10,   flat: 0,    label: '10%' },
+  'Poshmark':            { pct: 0.20,   flat: 0,    label: '20% (or $2.95 if under $15)' },
+  'Mercari':             { pct: 0.10,   flat: 0,    label: '10%' },
+  'Grailed':             { pct: 0.09,   flat: 0,    label: '9% + 3.49% processing', processing: 0.0349 },
+  'StockX':              { pct: 0.10,   flat: 0,    label: '~10% (varies by level)' },
+  'GOAT':                { pct: 0.095,  flat: 5,    label: '9.5% + $5 cashout' },
+  'Vinted':              { pct: 0,      flat: 0,    label: '0% seller fees (buyer pays)' },
+  'Tradesy':             { pct: 0.198,  flat: 0,    label: '19.8%' },
+  'The RealReal':        { pct: 0.45,   flat: 0,    label: '45% avg commission' },
+  'Vestiaire Collective':{ pct: 0.15,   flat: 0,    label: '15%' },
+  'Reverb':              { pct: 0.05,   flat: 0.25, label: '5% + $0.25' },
+  'Discogs':             { pct: 0.08,   flat: 0,    label: '8%' },
+  'Whatnot':             { pct: 0.089,  flat: 0,    label: '8.9%' },
+  'TikTok Shop':         { pct: 0.08,   flat: 0,    label: '8%' },
+  'Shopify':             { pct: 0.029,  flat: 0.30, label: '2.9% + $0.30 processing' },
+  'Walmart Marketplace': { pct: 0.15,   flat: 0,    label: '15% referral' },
+  'Newegg':              { pct: 0.12,   flat: 0,    label: '8-15% (avg 12%)' },
+  'Swappa':              { pct: 0.03,   flat: 0,    label: '3% (buyer pays most)' },
+};
+
+function calcPlatformFee(platform, salePrice) {
+  const fee = PLATFORM_FEES[platform];
+  if (!fee) return null;
+  let total = (salePrice * fee.pct) + (fee.flat || 0);
+  if (fee.processing) total += salePrice * fee.processing;
+  // Poshmark minimum
+  if (platform === 'Poshmark' && salePrice < 15) total = 2.95;
+  // Facebook minimum
+  if (platform === 'Facebook Marketplace') total = Math.max(total, 0.40);
+  return Math.round(total * 100) / 100;
+}
 const mkc = c => ({ok:'var(--good)',warn:'var(--warn)',low:'var(--danger)'}[c]);
 const margCls = m => m>=0.35?'mb-high':m>=0.15?'mb-mid':'mb-low';
 
@@ -4269,8 +4353,69 @@ function updateSalesLog() {
   }).join('');
 }
 
+// ── PRICE DROP ALERTS ─────────────────────────────────────────────────────
+function renderPriceAlerts() {
+  const el = document.getElementById('priceAlerts');
+  if (!el) return;
+  const now = new Date();
+  const msDay = 86400000;
+
+  // Find in-stock items with no sales, listed 14+ days
+  const staleItems = inv.filter(item => {
+    if ((item.qty || 0) <= 0) return false;
+    const hasSales = sales.some(s => s.itemId === item.id);
+    if (hasSales) return false;
+    const added = new Date(item.added || now);
+    const days = Math.floor((now - added) / msDay);
+    return days >= 14;
+  }).map(item => {
+    const added = new Date(item.added || now);
+    const days = Math.floor((now - added) / msDay);
+    const tier = days >= 90 ? 3 : days >= 60 ? 2 : days >= 30 ? 1 : 0;
+    const dropPct = tier >= 3 ? 0.25 : tier >= 2 ? 0.20 : tier >= 1 ? 0.15 : 0.10;
+    const suggested = Math.round((item.price || 0) * (1 - dropPct) * 100) / 100;
+    return { item, days, tier, dropPct, suggested };
+  }).sort((a, b) => b.days - a.days);
+
+  if (!staleItems.length) { el.style.display = 'none'; return; }
+
+  const shown = staleItems.slice(0, 5);
+  const more = staleItems.length - shown.length;
+  const tierLabel = d => d >= 90 ? '🔴 90+d' : d >= 60 ? '🟠 60+d' : d >= 30 ? '🟡 30+d' : '⚪ 14+d';
+
+  el.style.display = '';
+  el.innerHTML = `<div class="price-alerts-wrap">
+    <div class="price-alerts-hdr">
+      <div class="price-alerts-title">📉 Price Drop Suggestions <span style="font-family:'DM Mono',monospace;font-weight:400;font-size:10px;opacity:0.7">${staleItems.length} item${staleItems.length > 1 ? 's' : ''} not moving</span></div>
+      <button class="price-alerts-dismiss" onclick="document.getElementById('priceAlerts').style.display='none'">Dismiss</button>
+    </div>
+    ${shown.map(s => `<div class="price-alert-item">
+      <div class="price-alert-info">
+        <div class="price-alert-name" onclick="openDrawer('${s.item.id}')">${escHtml(s.item.name)}</div>
+        <div class="price-alert-meta">${tierLabel(s.days)} · listed ${s.days}d · ${fmt(s.item.price)} current</div>
+      </div>
+      <div class="price-alert-action">
+        <div class="price-alert-suggest">${fmt(s.suggested)}</div>
+        <button class="price-alert-btn" onclick="quickReprice('${s.item.id}',${s.suggested})">Apply ${Math.round(s.dropPct*100)}% off</button>
+      </div>
+    </div>`).join('')}
+    ${more > 0 ? `<div style="font-size:10px;color:var(--muted);margin-top:6px;font-family:'DM Mono',monospace">+ ${more} more stale items — check Insights for full list</div>` : ''}
+  </div>`;
+}
+
+function quickReprice(itemId, newPrice) {
+  const item = inv.find(i => i.id === itemId);
+  if (!item) return;
+  const oldPrice = item.price;
+  item.price = newPrice;
+  save();
+  refresh();
+  toast(`${item.name} repriced: ${fmt(oldPrice)} → ${fmt(newPrice)} ✓`);
+}
+
 // DASH MINI TABLE
 function renderDash() {
+  renderPriceAlerts();
   const items=[...inv].sort((a,b)=>new Date(b.added)-new Date(a.added)).slice(0,6);
   const tbody=document.getElementById('dashBody');
   if(!items.length){tbody.innerHTML='<tr><td colspan="4" style="padding:20px;color:var(--muted);font-size:12px;text-align:center">No items yet.</td></tr>';return;}
@@ -4748,7 +4893,7 @@ function toggleAll(cb){document.querySelectorAll('#invBody tr[data-id]').forEach
 function clearSel(){sel.clear();document.getElementById('selAll').checked=false;renderInv();}
 function syncBulk(){const b=document.getElementById('bulkBar');b.classList.toggle('on',sel.size>0);document.getElementById('bulkCnt').textContent=sel.size+' selected';}
 async function bulkDel(){if(!sel.size)return;if(!confirm(`Delete ${sel.size} item(s)?`))return;const ids=[...sel];inv=inv.filter(i=>!sel.has(i.id));sel.clear();save();refresh();toast('Deleted ✓');await pushDeleteToCloud('ft_inventory',ids);autoSync();}
-function bulkSold(){if(!sel.size)return;const ok=[...sel].filter(id=>{const it=inv.find(i=>i.id===id);return it&&it.qty>0;});if(!ok.length){toast('No sellable items selected',true);return;}if(!confirm(`Record sale for ${ok.length} item(s) at list price?`))return;const today=new Date().toISOString().split('T')[0];for(const id of ok){const it=inv.find(i=>i.id===id);sales.push({id:uid(),itemId:id,price:it.price,qty:1,fees:it.fees||0,ship:it.ship||0,date:today});it.qty=Math.max(0,(it.qty||0)-1);}sel.clear();save();refresh();toast(`${ok.length} sale(s) recorded ✓`);}
+function bulkSold(){if(!sel.size)return;const ok=[...sel].filter(id=>{const it=inv.find(i=>i.id===id);return it&&it.qty>0;});if(!ok.length){toast('No sellable items selected',true);return;}if(!confirm(`Record sale for ${ok.length} item(s) at list price?`))return;const today=new Date().toISOString().split('T')[0];for(const id of ok){const it=inv.find(i=>i.id===id);sales.push({id:uid(),itemId:id,price:it.price,listPrice:it.price||0,qty:1,fees:it.fees||0,ship:it.ship||0,date:today});it.qty=Math.max(0,(it.qty||0)-1);}sel.clear();save();refresh();toast(`${ok.length} sale(s) recorded ✓`);}
 
 // SUBCATEGORY SYNC HELPERS
 function populateSubcatSelect(selectId, category, currentValue) {
@@ -5006,6 +5151,7 @@ function openSoldModal(id){
   ].join('');
   if (itemPlats.length) sel.value = itemPlats[0];
   sPriceType('each');
+  updateFeeEstimate();
   document.getElementById('soldOv').classList.add('on');
 }
 let _sPriceType = 'each'; // 'each' or 'total'
@@ -5033,6 +5179,23 @@ function updateSalePriceHint() {
   }
 }
 
+function updateFeeEstimate() {
+  const platform = document.getElementById('s_platform').value;
+  const price = parseFloat(document.getElementById('s_price').value) || 0;
+  const hint = document.getElementById('s_fee_hint');
+  const feeInput = document.getElementById('s_fees');
+  if (!hint) return;
+  const feeData = PLATFORM_FEES[platform];
+  if (!feeData) { hint.style.display = 'none'; return; }
+  hint.style.display = '';
+  if (price > 0) {
+    const est = calcPlatformFee(platform, price);
+    hint.innerHTML = `${feeData.label} · est. <strong style="color:var(--accent)">${fmt(est)}</strong> <button onclick="document.getElementById('s_fees').value=${est};this.textContent='Applied ✓'" style="background:none;border:1px solid var(--border);color:var(--accent);font-size:9px;padding:2px 8px;cursor:pointer;font-family:'DM Mono',monospace;margin-left:4px">Apply</button>`;
+  } else {
+    hint.textContent = feeData.label;
+  }
+}
+
 function closeSold(){document.getElementById('soldOv').classList.remove('on');activeSoldId=null;}
 function recSale(){
   const item=inv.find(i=>i.id===activeSoldId);
@@ -5044,7 +5207,7 @@ function recSale(){
   // Convert to per-unit price for storage (all sale records store per-unit price)
   const price = _sPriceType === 'total' ? rawPrice / qty : rawPrice;
   const platform = document.getElementById('s_platform').value || 'Other';
-  sales.push({id:uid(),itemId:activeSoldId,price,qty,platform,fees:parseFloat(document.getElementById('s_fees').value)||0,ship:parseFloat(document.getElementById('s_ship').value)||0,date:document.getElementById('s_date').value||new Date().toISOString()});
+  sales.push({id:uid(),itemId:activeSoldId,price,listPrice:item.price||0,qty,platform,fees:parseFloat(document.getElementById('s_fees').value)||0,ship:parseFloat(document.getElementById('s_ship').value)||0,date:document.getElementById('s_date').value||new Date().toISOString()});
   item.qty-=qty; save(); closeSold(); refresh(); _sfx.sale(); toast('Sale recorded ✓');
   // Prompt for materials used if any supplies exist
   openMaterialsModal(() => {});
@@ -5066,12 +5229,15 @@ function renderSalesView(){
     const cost=it?(it.cost||0)*(s.qty||0):0;
     const rev=(s.price||0)*(s.qty||0);
     const pr=rev-cost-(s.fees||0)-(s.ship||0);
+    const lp = s.listPrice || (it ? it.price : 0);
+    const priceDiff = lp > 0 ? ((s.price - lp) / lp) : 0;
+    const priceTag = lp > 0 ? (priceDiff > 0.01 ? `<span style="font-size:9px;color:var(--good);font-family:'DM Mono',monospace">▲${pct(priceDiff)}</span>` : priceDiff < -0.01 ? `<span style="font-size:9px;color:var(--danger);font-family:'DM Mono',monospace">▼${pct(Math.abs(priceDiff))}</span>` : `<span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace">= list</span>`) : '';
     return `<tr>
       <td><div class="item-name" style="cursor:${it?'pointer':'default'}" ${it?`onclick="openDrawer('${it.id}')"`:''}>${nm}</div>${it?.category?`<div class="item-meta"><span class="cat-tag">${it.category}</span></div>`:''}</td>
       <td>${s.platform ? `<span class="plat-tag ${platCls(s.platform)||''}">${s.platform}</span>` : (it ? renderPlatTags(it) : '-')}</td>
       <td style="color:var(--muted);font-size:11px">${ds(s.date)}</td>
       <td>${s.qty}</td>
-      <td>${fmt(s.price)}</td>
+      <td>${fmt(s.price)} ${priceTag}</td>
       <td style="color:var(--muted)">${fmt(it?it.cost:0)}</td>
       <td style="color:var(--muted)">${fmt((s.fees||0)+(s.ship||0))}</td>
       <td style="font-family:'Syne',sans-serif;font-weight:700;color:${pr>=0?'var(--good)':'var(--danger)'}">${fmt(pr)}</td>
@@ -5303,6 +5469,47 @@ function renderInsights() {
     'var(--warn)'
   ) : '';
 
+  // ── Section: Pricing Accuracy ─────────────────────────────────────────────
+  const salesWithList = sales.filter(s => {
+    const lp = s.listPrice || (inv.find(i=>i.id===s.itemId)?.price || 0);
+    return lp > 0;
+  });
+  let accAbove = 0, accAt = 0, accBelow = 0, totalDiff = 0;
+  for (const s of salesWithList) {
+    const lp = s.listPrice || (inv.find(i=>i.id===s.itemId)?.price || 0);
+    const diff = (s.price - lp) / lp;
+    totalDiff += diff;
+    if (diff > 0.01) accAbove++;
+    else if (diff < -0.01) accBelow++;
+    else accAt++;
+  }
+  const avgDiff = salesWithList.length ? totalDiff / salesWithList.length : 0;
+  const accColor = avgDiff >= 0 ? 'var(--good)' : avgDiff > -0.1 ? 'var(--warn)' : 'var(--danger)';
+  const pricingSection = salesWithList.length >= 3 ? insightCard('🎯', 'Pricing Accuracy',
+    `<div style="display:flex;gap:10px;margin-bottom:12px">
+      <div style="flex:1;background:var(--surface);border:1px solid var(--border);padding:10px;text-align:center">
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:${accColor}">${avgDiff >= 0 ? '+' : ''}${pct(avgDiff)}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">avg vs list price</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <div style="flex:1;text-align:center;padding:8px;background:rgba(87,255,154,0.06);border:1px solid rgba(87,255,154,0.15)">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--good)">${accAbove}</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:2px">ABOVE LIST</div>
+      </div>
+      <div style="flex:1;text-align:center;padding:8px;background:rgba(87,200,255,0.06);border:1px solid rgba(87,200,255,0.15)">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--accent)">${accAt}</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:2px">AT LIST</div>
+      </div>
+      <div style="flex:1;text-align:center;padding:8px;background:rgba(255,71,87,0.06);border:1px solid rgba(255,71,87,0.15)">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--danger)">${accBelow}</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:2px">BELOW LIST</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">💡 ${accBelow > accAbove ? 'You often sell below listing — try starting higher or negotiating less' : accAbove > accBelow ? 'Great job — you consistently meet or exceed your asking price' : 'Your pricing is well calibrated to market expectations'}</div>`,
+    accColor
+  ) : '';
+
   // ── Assemble ──────────────────────────────────────────────────────────────
   el.innerHTML = `
     <div style="padding:0 0 24px">
@@ -5325,6 +5532,7 @@ function renderInsights() {
           ${roiSection}
           ${catSection}
           ${platSection}
+          ${pricingSection}
           ${expSection}
         </div>
       </div>
