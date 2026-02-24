@@ -2731,6 +2731,45 @@ header::after {
 [data-theme="light"] .margin-badge.mb-high { background: rgba(26,153,85,0.12); color: var(--good); border-color: rgba(26,153,85,0.25); }
 [data-theme="light"] .margin-badge.mb-mid { background: rgba(200,149,0,0.12); color: var(--warn); border-color: rgba(200,149,0,0.25); }
 [data-theme="light"] .margin-badge.mb-low { background: rgba(217,53,69,0.12); color: var(--danger); border-color: rgba(217,53,69,0.25); }
+
+/* ── Book Mode ─────────────────────────────────────────────────────────────── */
+.book-fields { display: none; grid-column: 1 / -1; }
+.book-fields.on { display: block; }
+.book-fields .bf-header {
+  font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
+  color: var(--accent3); text-transform: uppercase; letter-spacing: 1.5px;
+  margin: 12px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 6px;
+}
+.book-fields .bf-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px;
+}
+.book-fields .bf-grid .fgrp,
+.book-fields .bf-grid .edit-grp { margin: 0; }
+.book-fields .bf-grid .full { grid-column: 1 / -1; }
+.isbn-row { display: flex; gap: 6px; align-items: flex-end; }
+.isbn-row input { flex: 1; }
+.isbn-lookup-btn {
+  background: var(--accent3); color: #fff; border: none; padding: 8px 12px;
+  font-family: 'DM Mono', monospace; font-size: 10px; cursor: pointer;
+  white-space: nowrap; font-weight: 600; letter-spacing: 0.5px;
+}
+.isbn-lookup-btn:hover { filter: brightness(1.15); }
+.isbn-lookup-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.rank-display { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; margin-top: 4px; }
+.rank-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.rank-label { font-family: 'DM Mono', monospace; color: var(--muted); }
+.fba-calc-panel {
+  background: var(--surface2); border: 1px solid var(--border); padding: 12px 14px;
+  margin-top: 8px; display: none;
+}
+.fba-calc-panel.on { display: block; }
+.fba-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px; }
+.fba-row .fba-lbl { color: var(--muted); }
+.fba-row .fba-val { font-family: 'DM Mono', monospace; font-weight: 600; }
+.fba-row.fba-total { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 6px; font-weight: 700; }
+.fba-winner { font-size: 10px; margin-top: 6px; padding: 6px 10px; font-weight: 600; font-family: 'DM Mono', monospace; }
+.book-meta-tag { font-size: 9px; padding: 2px 6px; background: rgba(123,97,255,0.1); color: var(--accent3); font-family: 'DM Mono', monospace; border: 1px solid rgba(123,97,255,0.2); margin-left: 4px; }
 </style>
 </head>
 <body>
@@ -3185,6 +3224,42 @@ header::after {
           </div>
           <input type="hidden" id="d_condition" value="">
         </div>
+        <!-- Book-specific fields (hidden unless category = Books) -->
+        <div class="book-fields" id="d_book_fields">
+          <div class="bf-header">📚 Book Details</div>
+          <div class="bf-grid">
+            <div class="edit-grp full">
+              <div class="edit-lbl">ISBN</div>
+              <div class="isbn-row">
+                <input class="edit-inp" type="text" id="d_isbn" placeholder="ISBN-10 or ISBN-13" oninput="this.value=this.value.replace(/[^0-9Xx-]/g,'')">
+                <button type="button" class="isbn-lookup-btn" id="d_isbn_btn" onclick="lookupISBN('d')">🔍 Lookup</button>
+              </div>
+            </div>
+            <div class="edit-grp"><div class="edit-lbl">Author</div><input class="edit-inp" type="text" id="d_author" placeholder="Author name"></div>
+            <div class="edit-grp"><div class="edit-lbl">Publisher</div><input class="edit-inp" type="text" id="d_publisher" placeholder="Publisher"></div>
+            <div class="edit-grp"><div class="edit-lbl">Edition</div><input class="edit-inp" type="text" id="d_edition" placeholder="e.g. 1st, 2nd, Revised"></div>
+            <div class="edit-grp"><div class="edit-lbl">Printing</div><input class="edit-inp" type="text" id="d_printing" placeholder="e.g. 1st, 3rd"></div>
+            <div class="edit-grp"><div class="edit-lbl">Year Published</div><input class="edit-inp" type="number" id="d_pub_year" placeholder="e.g. 1985" min="1400" max="2030"></div>
+            <div class="edit-grp">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding-top:18px">
+                <input type="checkbox" id="d_signed" style="width:16px;height:16px;accent-color:var(--accent3);flex-shrink:0">
+                <span style="font-size:11px;color:var(--muted)">Signed Copy</span>
+              </label>
+            </div>
+            <div class="edit-grp full">
+              <div class="edit-lbl">Amazon Sales Rank</div>
+              <input class="edit-inp" type="number" id="d_sales_rank" placeholder="e.g. 245000" min="1" oninput="updateRankDisplay('d')">
+              <div class="rank-display" id="d_rank_display"></div>
+            </div>
+            <div class="edit-grp full">
+              <div class="edit-lbl" style="display:flex;align-items:center;justify-content:space-between">
+                <span>FBA vs. Merchant Calculator</span>
+                <button type="button" style="font-size:10px;background:var(--accent3);color:#fff;border:none;padding:3px 10px;cursor:pointer;font-family:'DM Mono',monospace" onclick="calcFBA('d')">Calculate</button>
+              </div>
+              <div class="fba-calc-panel" id="d_fba_panel"></div>
+            </div>
+          </div>
+        </div>
         <div class="edit-grp full"><div class="edit-lbl">Notes</div><textarea class="edit-ta" id="d_notes"></textarea></div>
       </div>
     </div>
@@ -3554,6 +3629,42 @@ header::after {
             <button type="button" class="cond-tag" onclick="setCondTag('f','Refurbished',this)">Refurbished</button>
           </div>
           <input type="hidden" id="f_condition" value="">
+        </div>
+        <!-- Book-specific fields (hidden unless category = Books) -->
+        <div class="book-fields" id="f_book_fields">
+          <div class="bf-header">📚 Book Details</div>
+          <div class="bf-grid">
+            <div class="fgrp full">
+              <label>ISBN</label>
+              <div class="isbn-row">
+                <input type="text" id="f_isbn" placeholder="ISBN-10 or ISBN-13" oninput="this.value=this.value.replace(/[^0-9Xx-]/g,'')">
+                <button type="button" class="isbn-lookup-btn" id="f_isbn_btn" onclick="lookupISBN('f')">🔍 Lookup</button>
+              </div>
+            </div>
+            <div class="fgrp"><label>Author</label><input type="text" id="f_author" placeholder="Author name"></div>
+            <div class="fgrp"><label>Publisher</label><input type="text" id="f_publisher" placeholder="Publisher"></div>
+            <div class="fgrp"><label>Edition</label><input type="text" id="f_edition" placeholder="e.g. 1st, 2nd, Revised"></div>
+            <div class="fgrp"><label>Printing</label><input type="text" id="f_printing" placeholder="e.g. 1st, 3rd"></div>
+            <div class="fgrp"><label>Year Published</label><input type="number" id="f_pub_year" placeholder="e.g. 1985" min="1400" max="2030"></div>
+            <div class="fgrp">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                <input type="checkbox" id="f_signed" style="width:16px;height:16px;accent-color:var(--accent3);flex-shrink:0">
+                <span>Signed Copy</span>
+              </label>
+            </div>
+            <div class="fgrp full">
+              <label>Amazon Sales Rank</label>
+              <input type="number" id="f_sales_rank" placeholder="e.g. 245000" min="1" oninput="updateRankDisplay('f')">
+              <div class="rank-display" id="f_rank_display"></div>
+            </div>
+            <div class="fgrp full">
+              <label style="display:flex;align-items:center;justify-content:space-between">
+                <span>FBA vs. Merchant Calculator</span>
+                <button type="button" style="font-size:10px;background:var(--accent3);color:#fff;border:none;padding:3px 10px;cursor:pointer;font-family:'DM Mono',monospace" onclick="calcFBA('f')">Calculate</button>
+              </label>
+              <div class="fba-calc-panel" id="f_fba_panel"></div>
+            </div>
+          </div>
         </div>
         <div class="fgrp full"><label>Notes</label><textarea id="f_notes" placeholder="Condition, sourcing, etc."></textarea></div>
         <div class="fgrp full">
@@ -4008,6 +4119,18 @@ const CAT_TREE = {
       'Footwear':            ['Men', 'Women', 'Children'],
       "Men's Accessories":   [],
       "Women's Accessories": [],
+    }
+  },
+  Books: {
+    subcats: {
+      'Fiction':             ['Literary', 'Sci-Fi', 'Fantasy', 'Mystery', 'Thriller', 'Romance', 'Horror', 'Historical'],
+      'Non-Fiction':         ['Biography', 'History', 'Science', 'Self-Help', 'Business', 'Travel', 'Cooking', 'Health'],
+      'Textbooks':           ['Math', 'Science', 'Engineering', 'Medicine', 'Law', 'Business', 'Humanities', 'Computer Science'],
+      'Children':            ['Picture Books', 'Middle Grade', 'Young Adult', 'Board Books', 'Activity Books'],
+      'Rare & Collectible':  ['First Editions', 'Signed Copies', 'Antiquarian', 'Limited Editions'],
+      'Comics & Graphic Novels': [],
+      'Art & Photography':   [],
+      'Reference':           [],
     }
   }
 };
@@ -5288,7 +5411,7 @@ function renderInv() {
       }</td>
       <td>
         <div class="item-name" onclick="openDrawer('${item.id}')">${item.name}</div>
-        <div class="item-meta"><span class="item-sku">${item.sku||'—'}</span>${item.upc?`<span class="upc-tag">${item.upc}</span>`:''}${item.category?`<span class="cat-tag">${item.category}</span>`:''} ${item.subcategory?`<span class="cat-tag" style="background:rgba(87,200,255,0.1);color:var(--accent)">${item.subcategory}</span>`:''} ${item.subtype?`<span class="cat-tag" style="background:rgba(123,97,255,0.15);color:var(--accent3)">${item.subtype}</span>`:''} ${item.condition?`<span class="cat-tag" style="background:rgba(87,255,154,0.08);color:var(--good)">${item.condition}</span>`:''} ${item.source?`<span class="cat-tag" style="background:rgba(255,107,53,0.1);color:var(--accent2)">📍${item.source}</span>`:''}</div>
+        <div class="item-meta"><span class="item-sku">${item.sku||'—'}</span>${item.upc?`<span class="upc-tag">${item.upc}</span>`:''}${item.category?`<span class="cat-tag">${item.category}</span>`:''} ${item.subcategory?`<span class="cat-tag" style="background:rgba(87,200,255,0.1);color:var(--accent)">${item.subcategory}</span>`:''} ${item.subtype?`<span class="cat-tag" style="background:rgba(123,97,255,0.15);color:var(--accent3)">${item.subtype}</span>`:''} ${item.condition?`<span class="cat-tag" style="background:rgba(87,255,154,0.08);color:var(--good)">${item.condition}</span>`:''} ${item.source?`<span class="cat-tag" style="background:rgba(255,107,53,0.1);color:var(--accent2)">📍${item.source}</span>`:''}${item.author?`<span class="book-meta-tag">✍ ${escHtml(item.author)}</span>`:''}${item.edition?`<span class="book-meta-tag">${escHtml(item.edition)} ed.</span>`:''}${item.signed?`<span class="book-meta-tag" style="background:rgba(255,215,0,0.15);color:#d4a017;border-color:rgba(255,215,0,0.3)">✒ Signed</span>`:''}</div>
       </td>
       <td>${renderPlatTags(item)}</td>
       <td>
@@ -5392,6 +5515,7 @@ function syncDrawerSubcat() {
   // Keep the hidden select in sync for legacy data reads
   populateSubcatSelect('d_subcat', cat, document.getElementById('d_subcat_txt').value);
   populateSubtypeSelect('d_subtype', document.getElementById('d_subcat').value, '');
+  toggleBookFields('d');
 }
 function syncDrawerSubtype() {
   populateSubtypeSelect('d_subtype', document.getElementById('d_subcat').value, '');
@@ -5403,6 +5527,7 @@ function syncAddSubcat() {
   if (dl) dl.innerHTML = subs.map(s => `<option value="${s}">`).join('');
   populateSubcatSelect('f_subcat', cat, document.getElementById('f_subcat_txt').value);
   populateSubtypeSelect('f_subtype', document.getElementById('f_subcat').value, '');
+  toggleBookFields('f');
 }
 function syncAddSubtype() {
   populateSubtypeSelect('f_subtype', document.getElementById('f_subcat').value, '');
@@ -5442,6 +5567,9 @@ function openDrawer(id) {
   loadCondTag('d', item.condition || '');
   populateSubcatSelect('d_subcat', item.category||'', item.subcategory||'');
   populateSubtypeSelect('d_subtype', item.subcategory||'', item.subtype||'');
+  // Book mode
+  toggleBookFields('d');
+  if (isBookCat(item.category)) loadBookFields('d', item);
   renderDrawerImg(item.id);
   renderDrawerBarcode(item);
   loadDimsToForm('d', item);
@@ -5538,6 +5666,7 @@ function saveDrawer(){
   item.condition=document.getElementById('d_condition').value.trim();
   item.notes   =document.getElementById('d_notes').value.trim();
   Object.assign(item, getDimsFromForm('d'));
+  if (isBookCat(item.category)) Object.assign(item, getBookFields('d'));
   save(); closeDrawer(); refresh(); _sfx.edit(); toast('Changes saved ✓');
 }
 async function delCurrent(){const item=inv.find(i=>i.id===activeDrawId);if(!confirm(`Delete "${item?.name}"?`))return;const id=activeDrawId;softDeleteItem(id);save();closeDrawer();refresh();toast('Item deleted — tap Undo to restore',false,4000);await pushDeleteToCloud('ft_inventory',[id]);autoSync();}
@@ -5564,6 +5693,198 @@ function loadCondTag(prefix, value) {
   picker.querySelectorAll('.cond-tag').forEach(b => {
     b.classList.toggle('active', b.textContent.trim() === value);
   });
+}
+
+// ── Book Mode ─────────────────────────────────────────────────────────────────
+const BOOK_CONDITIONS = ['Like New', 'Very Good', 'Good', 'Acceptable', 'Poor'];
+const STD_CONDITIONS  = ['NWT', 'NWOT', 'EUC', 'GUC', 'Fair', 'Poor', 'New/Sealed', 'Refurbished'];
+
+function isBookCat(cat) {
+  if (!cat) return false;
+  const c = cat.toLowerCase().trim();
+  return c === 'books' || c === 'book' || c === 'textbooks' || c === 'textbook'
+    || c.startsWith('book') || c.endsWith('books');
+}
+
+function toggleBookFields(prefix) {
+  const catEl = document.getElementById(prefix === 'f' ? 'f_cat' : 'd_cat');
+  const cat = catEl ? catEl.value.trim() : '';
+  const isBook = isBookCat(cat);
+  const bf = document.getElementById(prefix + '_book_fields');
+  if (bf) bf.classList.toggle('on', isBook);
+  swapConditionTags(prefix, isBook);
+}
+
+function swapConditionTags(prefix, isBook) {
+  const picker = document.getElementById(prefix + '_cond_picker');
+  if (!picker) return;
+  const currentVal = document.getElementById(prefix + '_condition')?.value || '';
+  const tags = isBook ? BOOK_CONDITIONS : STD_CONDITIONS;
+  picker.innerHTML = tags.map(t =>
+    `<button type="button" class="cond-tag" onclick="setCondTag('${prefix}','${t}',this)">${t}</button>`
+  ).join('');
+  // Re-activate if value matches
+  if (currentVal) loadCondTag(prefix, currentVal);
+}
+
+function updateRankDisplay(prefix) {
+  const el = document.getElementById(prefix + '_rank_display');
+  const rank = parseInt(document.getElementById(prefix + '_sales_rank')?.value) || 0;
+  if (!el) return;
+  if (!rank) { el.innerHTML = ''; return; }
+  let color, label;
+  if (rank < 100000)       { color = 'var(--good)';    label = 'Fast seller — high demand'; }
+  else if (rank < 500000)  { color = 'var(--accent)';  label = 'Moderate — sells within weeks'; }
+  else if (rank < 1000000) { color = 'var(--warn)';    label = 'Slow — may take months'; }
+  else                     { color = 'var(--danger)';  label = 'Very slow — consider skipping'; }
+  el.innerHTML = `<span class="rank-dot" style="background:${color}"></span><span class="rank-label">#${rank.toLocaleString()} — ${label}</span>`;
+}
+
+async function lookupISBN(prefix) {
+  const isbnRaw = document.getElementById(prefix + '_isbn')?.value.replace(/[-\s]/g, '') || '';
+  if (!isbnRaw || (isbnRaw.length !== 10 && isbnRaw.length !== 13)) {
+    toast('Enter a valid ISBN-10 or ISBN-13', true); return;
+  }
+  const btn = document.getElementById(prefix + '_isbn_btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Looking up…'; }
+  try {
+    const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbnRaw}&format=json&jscmd=data`);
+    const data = await res.json();
+    const key = `ISBN:${isbnRaw}`;
+    if (!data[key]) { toast('ISBN not found — try entering details manually', true); return; }
+    const book = data[key];
+
+    // Fill book fields
+    const nameEl = document.getElementById(prefix === 'f' ? 'f_name' : 'd_name');
+    if (nameEl && book.title && !nameEl.value) nameEl.value = book.title;
+
+    const authorEl = document.getElementById(prefix + '_author');
+    if (authorEl && book.authors?.length) authorEl.value = book.authors.map(a => a.name).join(', ');
+
+    const pubEl = document.getElementById(prefix + '_publisher');
+    if (pubEl && book.publishers?.length) pubEl.value = book.publishers[0].name;
+
+    const yearEl = document.getElementById(prefix + '_pub_year');
+    if (yearEl && book.publish_date) {
+      const yearMatch = book.publish_date.match(/\d{4}/);
+      if (yearMatch) yearEl.value = yearMatch[0];
+    }
+
+    // Set category to Books if not already
+    const catEl = document.getElementById(prefix === 'f' ? 'f_cat' : 'd_cat');
+    if (catEl && !isBookCat(catEl.value)) {
+      catEl.value = 'Books';
+      if (prefix === 'f') syncAddSubcat();
+      else syncDrawerSubcat();
+    }
+
+    // Try to set subcategory from subjects
+    if (book.subjects?.length) {
+      const subEl = document.getElementById(prefix + '_subcat_txt');
+      if (subEl && !subEl.value) subEl.value = book.subjects[0].name;
+    }
+
+    toast('ISBN found: ' + (book.title || isbnRaw) + ' ✓');
+  } catch (e) {
+    toast('ISBN lookup failed: ' + e.message, true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔍 Lookup'; }
+  }
+}
+
+function calcFBA(prefix) {
+  const price = parseFloat(document.getElementById(prefix === 'f' ? 'f_price' : 'd_price')?.value) || 0;
+  const cost = parseFloat(document.getElementById(prefix === 'f' ? 'f_cost' : 'd_cost')?.value) || 0;
+  const shipSelf = parseFloat(document.getElementById(prefix === 'f' ? 'f_ship' : 'd_ship')?.value) || 4.50;
+  const panel = document.getElementById(prefix + '_fba_panel');
+  if (!panel) return;
+  if (!price) { toast('Set a list price first', true); return; }
+
+  // Amazon book fees (approximate)
+  const referralFee = price * 0.15; // 15% referral
+  const closingFee = 1.80; // variable closing fee for media
+
+  // FBA
+  const fbaFulfill = 3.07; // standard media fulfillment
+  const fbaStorage = 0.10; // est monthly storage per book
+  const fbaTotalFees = referralFee + closingFee + fbaFulfill + fbaStorage;
+  const fbaProfit = price - cost - fbaTotalFees;
+
+  // Merchant Fulfilled (MF)
+  const mfShipCredit = price >= 10 ? 3.99 : 3.49; // Amazon shipping credit for media
+  const mfTotalFees = referralFee + closingFee;
+  const mfShipCost = shipSelf;
+  const mfProfit = price - cost - mfTotalFees - mfShipCost + mfShipCredit;
+
+  const fbaWins = fbaProfit > mfProfit;
+  const fmtV = v => `<span style="color:${v >= 0 ? 'var(--good)' : 'var(--danger)'}">${fmt(v)}</span>`;
+
+  panel.classList.add('on');
+  panel.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px">
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--accent3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;text-align:center">FBA</div>
+        <div class="fba-row"><span class="fba-lbl">Referral (15%)</span><span class="fba-val">${fmt(referralFee)}</span></div>
+        <div class="fba-row"><span class="fba-lbl">Closing Fee</span><span class="fba-val">${fmt(closingFee)}</span></div>
+        <div class="fba-row"><span class="fba-lbl">Fulfillment</span><span class="fba-val">${fmt(fbaFulfill)}</span></div>
+        <div class="fba-row"><span class="fba-lbl">Storage/mo</span><span class="fba-val">${fmt(fbaStorage)}</span></div>
+        <div class="fba-row fba-total"><span class="fba-lbl">Profit</span><span class="fba-val">${fmtV(fbaProfit)}</span></div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;text-align:center">Self-Ship</div>
+        <div class="fba-row"><span class="fba-lbl">Referral (15%)</span><span class="fba-val">${fmt(referralFee)}</span></div>
+        <div class="fba-row"><span class="fba-lbl">Closing Fee</span><span class="fba-val">${fmt(closingFee)}</span></div>
+        <div class="fba-row"><span class="fba-lbl">Shipping</span><span class="fba-val">${fmt(mfShipCost)}</span></div>
+        <div class="fba-row"><span class="fba-lbl">Ship Credit</span><span class="fba-val" style="color:var(--good)">+${fmt(mfShipCredit)}</span></div>
+        <div class="fba-row fba-total"><span class="fba-lbl">Profit</span><span class="fba-val">${fmtV(mfProfit)}</span></div>
+      </div>
+    </div>
+    <div class="fba-winner" style="background:${fbaWins ? 'rgba(123,97,255,0.1);color:var(--accent3)' : 'rgba(87,200,255,0.1);color:var(--accent)'}">
+      ${fbaWins ? '📦 FBA wins' : '📮 Self-Ship wins'} by ${fmt(Math.abs(fbaProfit - mfProfit))} per unit
+    </div>`;
+}
+
+function getBookFields(prefix) {
+  return {
+    isbn: document.getElementById(prefix + '_isbn')?.value.trim() || '',
+    author: document.getElementById(prefix + '_author')?.value.trim() || '',
+    publisher: document.getElementById(prefix + '_publisher')?.value.trim() || '',
+    edition: document.getElementById(prefix + '_edition')?.value.trim() || '',
+    printing: document.getElementById(prefix + '_printing')?.value.trim() || '',
+    pubYear: parseInt(document.getElementById(prefix + '_pub_year')?.value) || null,
+    signed: document.getElementById(prefix + '_signed')?.checked || false,
+    salesRank: parseInt(document.getElementById(prefix + '_sales_rank')?.value) || null,
+  };
+}
+
+function loadBookFields(prefix, item) {
+  document.getElementById(prefix + '_isbn').value = item.isbn || '';
+  document.getElementById(prefix + '_author').value = item.author || '';
+  document.getElementById(prefix + '_publisher').value = item.publisher || '';
+  document.getElementById(prefix + '_edition').value = item.edition || '';
+  document.getElementById(prefix + '_printing').value = item.printing || '';
+  document.getElementById(prefix + '_pub_year').value = item.pubYear || '';
+  document.getElementById(prefix + '_signed').checked = !!item.signed;
+  document.getElementById(prefix + '_sales_rank').value = item.salesRank || '';
+  updateRankDisplay(prefix);
+  // Hide FBA panel on load
+  const fp = document.getElementById(prefix + '_fba_panel');
+  if (fp) { fp.classList.remove('on'); fp.innerHTML = ''; }
+}
+
+function clearBookFields(prefix) {
+  ['isbn','author','publisher','edition','printing','pub_year','sales_rank'].forEach(f => {
+    const el = document.getElementById(prefix + '_' + f);
+    if (el) el.value = '';
+  });
+  const signed = document.getElementById(prefix + '_signed');
+  if (signed) signed.checked = false;
+  const rd = document.getElementById(prefix + '_rank_display');
+  if (rd) rd.innerHTML = '';
+  const fp = document.getElementById(prefix + '_fba_panel');
+  if (fp) { fp.classList.remove('on'); fp.innerHTML = ''; }
+  const bf = document.getElementById(prefix + '_book_fields');
+  if (bf) bf.classList.remove('on');
 }
 
 function dupCurrent() {
@@ -5611,6 +5932,8 @@ function closeAdd(){
   const bulkCb = document.getElementById('f_bulk'); if(bulkCb) bulkCb.checked=false;
   const bulkFields = document.getElementById('f_bulk_fields'); if(bulkFields) bulkFields.style.display='none';
   document.querySelectorAll('#f_cond_picker .cond-tag').forEach(b => b.classList.remove('active'));
+  clearBookFields('f');
+  swapConditionTags('f', false);
   pendingAddImages=[];refreshImgSlots('f',[]);clearDimForm('f');buildPlatPicker('f_plat_picker',[]);prevProfit();
 }
 function toggleBulkFields(pfx) {
@@ -5655,6 +5978,8 @@ function prefillFromLast() {
   // Rebuild platform picker with last item's platforms
   const plats = getPlatforms(last);
   if (plats.length) buildPlatPicker('f_plat_picker', plats);
+  // Book mode prefill
+  toggleBookFields('f');
 
   toast('Prefilled from: ' + last.name);
 }
@@ -5675,7 +6000,7 @@ function addItem(){
   const qty = isBulk ? (parseInt(document.getElementById('f_qty').value)||1) : 1;
   const newId = uid();
   const imagesToUpload = pendingAddImages.slice(); // capture before closeAdd clears them
-  inv.push({id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:(document.getElementById('f_subcat_txt').value||'').trim(),subtype:document.getElementById('f_subtype').value||'',platform,platforms:selPlats,cost:parseFloat(document.getElementById('f_cost').value)||0,price,qty,bulk:isBulk,fees:parseFloat(document.getElementById('f_fees').value)||0,ship:parseFloat(document.getElementById('f_ship').value)||0,lowAlert:isBulk?(parseInt(document.getElementById('f_alert').value)||2):2,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),added:new Date().toISOString()});
+  inv.push({id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:(document.getElementById('f_subcat_txt').value||'').trim(),subtype:document.getElementById('f_subtype').value||'',platform,platforms:selPlats,cost:parseFloat(document.getElementById('f_cost').value)||0,price,qty,bulk:isBulk,fees:parseFloat(document.getElementById('f_fees').value)||0,ship:parseFloat(document.getElementById('f_ship').value)||0,lowAlert:isBulk?(parseInt(document.getElementById('f_alert').value)||2):2,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),...(isBookCat(cat) ? getBookFields('f') : {}),added:new Date().toISOString()});
   save(); closeAdd(); refresh(); _sfx.create(); toast('Item added ✓');
 
   // Upload images to Storage in background, replace base64 with URLs
@@ -7263,8 +7588,8 @@ function printStickers(selectedOnly, ids) {
 }
 
 function exportCSV(){
-  const rows=[['Name','SKU','UPC','Category','Subcategory','Source','Condition','Platforms','Qty','Cost','Price','Fees','Ship','Margin','Notes','Added']];
-  for(const i of inv){const {m}=calc(i);rows.push([i.name,i.sku||'',i.upc||'',i.category||'',i.subcategory||'',i.source||'',i.condition||'',getPlatforms(i).join(';'),i.qty,i.cost,i.price,i.fees||0,i.ship||0,pct(m),i.notes||'',i.added||'']);}
+  const rows=[['Name','SKU','UPC','Category','Subcategory','Source','Condition','Platforms','Qty','Cost','Price','Fees','Ship','Margin','Notes','Added','ISBN','Author','Publisher','Edition','Printing','Year','Signed','Sales Rank']];
+  for(const i of inv){const {m}=calc(i);rows.push([i.name,i.sku||'',i.upc||'',i.category||'',i.subcategory||'',i.source||'',i.condition||'',getPlatforms(i).join(';'),i.qty,i.cost,i.price,i.fees||0,i.ship||0,pct(m),i.notes||'',i.added||'',i.isbn||'',i.author||'',i.publisher||'',i.edition||'',i.printing||'',i.pubYear||'',i.signed?'Yes':'',i.salesRank||'']);}
   const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='fliptrack-inventory.csv';a.click();toast('Inventory CSV exported ✓');
 }
@@ -7350,6 +7675,14 @@ function importCSV(file) {
         fees: ['fees','platformfees','sellingfees'],
         ship: ['ship','shipping','shippingcost'],
         notes: ['notes','description','comments','memo'],
+        isbn: ['isbn','isbn10','isbn13','isbnno'],
+        author: ['author','authors','writer','by'],
+        publisher: ['publisher','pub','publishedby'],
+        edition: ['edition','ed'],
+        printing: ['printing','print','printrun'],
+        pubYear: ['year','yearpublished','pubyear','publishyear','publicationyear'],
+        signed: ['signed','autographed','signature'],
+        salesRank: ['salesrank','amazonrank','rank','bsr'],
       };
 
       for (const [field, names] of Object.entries(aliases)) {
@@ -7376,7 +7709,7 @@ function importCSV(file) {
         const platStr = colMap.platform !== undefined ? (row[colMap.platform] || '').trim() : '';
         const plats = platStr ? platStr.split(/[;,|]/).map(p => p.trim()).filter(Boolean) : [];
 
-        inv.push({
+        const item = {
           id: uid(),
           name,
           sku: colMap.sku !== undefined ? (row[colMap.sku] || '').trim() || (skuCat + '-' + skuDate + '-' + skuRand) : skuCat + '-' + skuDate + '-' + skuRand,
@@ -7399,7 +7732,17 @@ function importCSV(file) {
           images: [],
           image: null,
           added: new Date().toISOString(),
-        });
+        };
+        // Book fields (only if present in CSV)
+        if (colMap.isbn !== undefined) item.isbn = (row[colMap.isbn] || '').trim();
+        if (colMap.author !== undefined) item.author = (row[colMap.author] || '').trim();
+        if (colMap.publisher !== undefined) item.publisher = (row[colMap.publisher] || '').trim();
+        if (colMap.edition !== undefined) item.edition = (row[colMap.edition] || '').trim();
+        if (colMap.printing !== undefined) item.printing = (row[colMap.printing] || '').trim();
+        if (colMap.pubYear !== undefined) item.pubYear = parseInt(row[colMap.pubYear]) || null;
+        if (colMap.signed !== undefined) item.signed = ['yes','true','1','y'].includes((row[colMap.signed]||'').trim().toLowerCase());
+        if (colMap.salesRank !== undefined) item.salesRank = parseInt(row[colMap.salesRank]) || null;
+        inv.push(item);
         imported++;
       }
 
