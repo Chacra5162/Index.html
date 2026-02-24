@@ -1804,6 +1804,102 @@ textarea { resize:vertical; min-height:70px; }
 .ls-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .ls-label { text-transform: uppercase; letter-spacing: 0.5px; font-size: 9px; color: var(--muted); }
 
+/* ── DEATH PILE ─────────────────────────────────────────────────────────── */
+.death-pile-wrap {
+  margin: 0 0 4px; padding: 14px 20px;
+  background: rgba(123,97,255,0.04); border-bottom: 1px solid rgba(123,97,255,0.15);
+}
+.death-pile-hdr {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+}
+.death-pile-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; color: var(--accent3);
+  display: flex; align-items: center; gap: 6px;
+}
+.death-pile-item {
+  display: flex; align-items: center; gap: 12px; padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.death-pile-item:last-child { border-bottom: none; }
+.dp-info { flex: 1; min-width: 0; }
+.dp-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.dp-name:hover { color: var(--accent); }
+.dp-meta { font-size: 10px; color: var(--muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
+.dp-age { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+.dp-list-btn {
+  background: none; border: 1px solid var(--accent3); color: var(--accent3); font-size: 10px;
+  padding: 4px 10px; cursor: pointer; font-family: 'DM Mono', monospace; flex-shrink: 0;
+  transition: all 0.15s;
+}
+.dp-list-btn:hover { background: var(--accent3); color: #fff; }
+
+/* ── BATCH SCAN ─────────────────────────────────────────────────────────── */
+.batch-overlay {
+  position: fixed; inset: 0; z-index: 5000;
+  background: var(--bg); display: none; flex-direction: column;
+}
+.batch-overlay.on { display: flex; }
+.batch-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+}
+.batch-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; }
+.batch-title span { color: var(--accent); }
+.batch-close {
+  background: none; border: 1px solid var(--border); color: var(--text); width: 36px; height: 36px;
+  font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.batch-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+.batch-camera-wrap {
+  position: relative; background: #000; height: 200px; flex-shrink: 0;
+}
+.batch-camera-wrap video { width: 100%; height: 100%; object-fit: cover; }
+.batch-scan-status {
+  position: absolute; bottom: 0; left: 0; right: 0; padding: 8px 16px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.8));
+  font-family: 'DM Mono', monospace; font-size: 11px; color: #fff;
+}
+.batch-source-bar {
+  display: flex; gap: 8px; align-items: center; padding: 10px 16px;
+  border-bottom: 1px solid var(--border); background: var(--surface);
+}
+.batch-source-bar input {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+  padding: 8px 12px; font-family: 'DM Mono', monospace; font-size: 12px;
+}
+.batch-list { flex: 1; overflow-y: auto; padding: 0; }
+.batch-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.batch-item-info { flex: 1; min-width: 0; }
+.batch-item-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.batch-item-upc { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; }
+.batch-item-fields { display: flex; gap: 6px; flex-shrink: 0; }
+.batch-item-fields input {
+  width: 70px; background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+  padding: 6px 8px; font-family: 'DM Mono', monospace; font-size: 11px; text-align: right;
+}
+.batch-item-rm {
+  background: none; border: none; color: var(--danger); font-size: 16px; cursor: pointer; padding: 4px;
+}
+.batch-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-top: 1px solid var(--border); background: var(--surface);
+}
+.batch-count { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); }
+.batch-add-all {
+  padding: 10px 24px; background: var(--accent); color: #0a0a0f; border: none;
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer;
+}
+.batch-add-all:hover { background: #70d4ff; }
+.batch-add-all:disabled { opacity: 0.4; cursor: default; }
+.batch-empty {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: 12px; font-family: 'DM Mono', monospace; padding: 32px;
+  text-align: center;
+}
+
 .id-error { text-align: center; padding: 24px; color: var(--danger); font-size: 13px; }
 .id-error button { margin-top: 12px; }
 
@@ -2655,6 +2751,7 @@ header::after {
     <button class="btn-secondary" onclick="openPriceResearch()" title="Look up prices by UPC barcode">🔍 Prices</button>
     <button class="btn-secondary" onclick="exportCSV()">↓ Export</button>
     <button class="btn-primary" id="headerIdBtn" onclick="openIdentify()" style="background:transparent;color:var(--accent);border:1px solid var(--accent);font-size:12px;padding:6px 12px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700">📸 Identify</button>
+    <button class="btn-primary" id="headerBatchBtn" onclick="openBatchScan()" style="background:transparent;color:var(--accent3);border:1px solid var(--accent3);font-size:12px;padding:6px 12px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700">⚡ Batch</button>
     <button class="btn-primary" id="headerAddBtn" onclick="openAddModal()">+ Add Item</button>
   </div>
 </header>
@@ -2713,6 +2810,7 @@ header::after {
     <button class="alert-x" onclick="document.getElementById('alertBanner').classList.remove('on')">×</button>
   </div>
   <div id="priceAlerts" style="display:none"></div>
+  <div id="deathPileSection" style="display:none"></div>
   <div class="dash-grid">
     <div class="panel">
       <div class="panel-header">
@@ -3059,6 +3157,7 @@ header::after {
         </div>
         <div class="edit-grp" id="d_alert_grp"><div class="edit-lbl">Low Stock Alert</div><input class="edit-inp" id="d_alert" type="number" min="0"></div>
         <div class="edit-grp"><div class="edit-lbl">Restock URL</div><input class="edit-inp" id="d_url" type="text" placeholder="Source link"></div>
+        <div class="edit-grp"><div class="edit-lbl">Source</div><input class="edit-inp" id="d_source" type="text" placeholder="e.g. Goodwill" list="sourceList"></div>
         <div class="edit-grp full"><div class="edit-lbl">Notes</div><textarea class="edit-ta" id="d_notes"></textarea></div>
       </div>
     </div>
@@ -3367,6 +3466,27 @@ header::after {
           </div>
         </div>
         <div class="fgrp"><label>Category</label><input type="text" id="f_cat" placeholder="e.g. Clothing" oninput="syncAddSubcat()"></div>
+        <div class="fgrp"><label>Source</label><input type="text" id="f_source" placeholder="e.g. Goodwill, Garage Sale" list="sourceList"></div>
+        <datalist id="sourceList">
+          <option value="Goodwill">
+          <option value="Salvation Army">
+          <option value="Thrift Store">
+          <option value="Garage Sale">
+          <option value="Estate Sale">
+          <option value="Flea Market">
+          <option value="Facebook Marketplace">
+          <option value="OfferUp">
+          <option value="Craigslist">
+          <option value="Wholesale">
+          <option value="Liquidation">
+          <option value="Retail Arbitrage">
+          <option value="Online Arbitrage">
+          <option value="Dumpster Dive">
+          <option value="Storage Unit">
+          <option value="Auction">
+          <option value="Personal Collection">
+          <option value="Other">
+        </datalist>
         <div class="fgrp"><label>Subcategory</label><input type="text" id="f_subcat_txt" placeholder="e.g. Sneakers, Men's…" list="f_subcat_dl"><datalist id="f_subcat_dl"></datalist></div>
         <select id="f_subcat" style="display:none"></select>
         <div class="fgrp" id="f_subtype_grp" style="display:none"><label id="f_subtype_lbl">Type</label><select id="f_subtype"><option value="">— None —</option></select></div>
@@ -3552,6 +3672,34 @@ header::after {
 
 <div class="toast" id="toast"></div>
 
+<!-- BATCH SCAN OVERLAY -->
+<div class="batch-overlay" id="batchOv">
+  <div class="batch-topbar">
+    <div class="batch-title">⚡ Batch <span>Scan</span></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button style="background:none;border:1px solid var(--border);color:var(--text);padding:6px 12px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer" onclick="batchManualAdd()">+ Manual</button>
+      <button class="batch-close" onclick="closeBatchScan()">×</button>
+    </div>
+  </div>
+  <div class="batch-body">
+    <div class="batch-camera-wrap" id="batchCamWrap">
+      <video id="batchVideo" autoplay muted playsinline webkit-playsinline></video>
+      <div class="batch-scan-status" id="batchScanStatus">Starting camera…</div>
+    </div>
+    <div class="batch-source-bar">
+      <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap">Source:</span>
+      <input type="text" id="batchSource" placeholder="e.g. Goodwill, Garage Sale" list="sourceList">
+    </div>
+    <div class="batch-list" id="batchList">
+      <div class="batch-empty" id="batchEmpty">Scan barcodes to add items here<br>or tap + Manual to type them in</div>
+    </div>
+  </div>
+  <div class="batch-footer">
+    <div class="batch-count" id="batchCount">0 items</div>
+    <button class="batch-add-all" id="batchAddBtn" disabled onclick="batchAddAll()">Add All to Inventory</button>
+  </div>
+</div>
+
 <!-- OFFLINE BANNER -->
 <div id="offlineBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:10000;background:var(--danger);color:#fff;text-align:center;padding:6px 16px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.5px">
   ⚡ Offline — changes saved locally and will sync when you reconnect
@@ -3577,6 +3725,10 @@ header::after {
   <button class="bnav-more-item" onclick="openIdentify();closeBnavMore()">
     <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
     Snap & Identify
+  </button>
+  <button class="bnav-more-item" onclick="openBatchScan();closeBnavMore()">
+    <svg viewBox="0 0 24 24"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    Batch Scan
   </button>
   <button class="bnav-more-item" id="bn-more-expenses" onclick="switchView('expenses',document.querySelectorAll('.nav-tab')[3]);bnav('bn-more-expenses');closeBnavMore()">
     <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
@@ -4468,6 +4620,51 @@ function updateSalesLog() {
   }).join('');
 }
 
+// ── DEATH PILE TRACKER ────────────────────────────────────────────────────
+function renderDeathPile() {
+  const el = document.getElementById('deathPileSection');
+  if (!el) return;
+  const now = new Date();
+  const msDay = 86400000;
+
+  // Death pile = in-stock items with no platforms assigned
+  const pile = inv.filter(item => {
+    if ((item.qty || 0) <= 0) return false;
+    const plats = getPlatforms(item);
+    return !plats.length || (plats.length === 1 && (plats[0] === 'Unlisted' || plats[0] === 'Other'));
+  }).map(item => {
+    const added = new Date(item.added || now);
+    const days = Math.floor((now - added) / msDay);
+    const costBasis = (item.cost || 0) * (item.qty || 1);
+    return { item, days, costBasis };
+  }).sort((a, b) => b.days - a.days);
+
+  if (!pile.length) { el.style.display = 'none'; return; }
+
+  const shown = pile.slice(0, 6);
+  const more = pile.length - shown.length;
+  const totalCost = pile.reduce((a, p) => a + p.costBasis, 0);
+  const ageColor = d => d >= 30 ? 'var(--danger)' : d >= 14 ? 'var(--warn)' : 'var(--muted)';
+
+  el.style.display = '';
+  el.innerHTML = `<div class="death-pile-wrap">
+    <div class="death-pile-hdr">
+      <div class="death-pile-title">📦 Death Pile <span style="font-family:'DM Mono',monospace;font-weight:400;font-size:10px;opacity:0.7">${pile.length} unlisted item${pile.length > 1 ? 's' : ''} · ${fmt(totalCost)} tied up</span></div>
+      <button style="background:none;border:1px solid rgba(123,97,255,0.3);color:var(--accent3);font-size:10px;padding:3px 10px;cursor:pointer;font-family:'DM Mono',monospace" onclick="document.getElementById('deathPileSection').style.display='none'">Dismiss</button>
+    </div>
+    ${shown.map(p => `<div class="death-pile-item">
+      <div class="dp-info">
+        <div class="dp-name" onclick="openDrawer('${p.item.id}')">${escHtml(p.item.name)}</div>
+        <div class="dp-meta">${p.item.category || 'No category'} · ${fmt(p.item.cost)} cost · qty ${p.item.qty}${p.item.source ? ' · 📍' + escHtml(p.item.source) : ''}</div>
+      </div>
+      <div class="dp-age" style="color:${ageColor(p.days)}">${p.days}d</div>
+      <button class="dp-list-btn" onclick="openDrawer('${p.item.id}')">List It →</button>
+    </div>`).join('')}
+    ${more > 0 ? `<div style="font-size:10px;color:var(--muted);margin-top:6px;font-family:'DM Mono',monospace">+ ${more} more unlisted items</div>` : ''}
+    <div style="margin-top:8px;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">💡 Assign platforms to move items out of the death pile</div>
+  </div>`;
+}
+
 // ── PRICE DROP ALERTS ─────────────────────────────────────────────────────
 function renderPriceAlerts() {
   const el = document.getElementById('priceAlerts');
@@ -4531,6 +4728,7 @@ function quickReprice(itemId, newPrice) {
 // DASH MINI TABLE
 function renderDash() {
   renderPriceAlerts();
+  renderDeathPile();
   const items=[...inv].sort((a,b)=>new Date(b.added)-new Date(a.added)).slice(0,6);
   const tbody=document.getElementById('dashBody');
   if(!items.length){tbody.innerHTML='<tr><td colspan="4" style="padding:20px;color:var(--muted);font-size:12px;text-align:center">No items yet.</td></tr>';return;}
@@ -4950,7 +5148,7 @@ function renderInv() {
       }</td>
       <td>
         <div class="item-name" onclick="openDrawer('${item.id}')">${item.name}</div>
-        <div class="item-meta"><span class="item-sku">${item.sku||'—'}</span>${item.upc?`<span class="upc-tag">${item.upc}</span>`:''}${item.category?`<span class="cat-tag">${item.category}</span>`:''} ${item.subcategory?`<span class="cat-tag" style="background:rgba(87,200,255,0.1);color:var(--accent)">${item.subcategory}</span>`:''} ${item.subtype?`<span class="cat-tag" style="background:rgba(123,97,255,0.15);color:var(--accent3)">${item.subtype}</span>`:''}</div>
+        <div class="item-meta"><span class="item-sku">${item.sku||'—'}</span>${item.upc?`<span class="upc-tag">${item.upc}</span>`:''}${item.category?`<span class="cat-tag">${item.category}</span>`:''} ${item.subcategory?`<span class="cat-tag" style="background:rgba(87,200,255,0.1);color:var(--accent)">${item.subcategory}</span>`:''} ${item.subtype?`<span class="cat-tag" style="background:rgba(123,97,255,0.15);color:var(--accent3)">${item.subtype}</span>`:''} ${item.source?`<span class="cat-tag" style="background:rgba(255,107,53,0.1);color:var(--accent2)">📍${item.source}</span>`:''}</div>
       </td>
       <td>${renderPlatTags(item)}</td>
       <td>
@@ -5088,7 +5286,7 @@ function openDrawer(id) {
     <div class="d-met"><div class="dm-lbl">ROI</div><div class="dm-val" style="color:var(--accent3)">${pct(roi)}</div></div>
     <div class="d-met"><div class="dm-lbl">Units Sold</div><div class="dm-val">${totSold}</div></div>
     <div class="d-met"><div class="dm-lbl">Total Revenue</div><div class="dm-val">${fmt(totRev)}</div></div>`;
-  const fields={d_name:'name',d_sku:'sku',d_upc:'upc',d_cat:'category',d_cost:'cost',d_price:'price',d_fees:'fees',d_ship:'ship',d_notes:'notes',d_url:'url',d_alert:'lowAlert'};
+  const fields={d_name:'name',d_sku:'sku',d_upc:'upc',d_cat:'category',d_cost:'cost',d_price:'price',d_fees:'fees',d_ship:'ship',d_notes:'notes',d_url:'url',d_alert:'lowAlert',d_source:'source'};
   for(const[eid,key]of Object.entries(fields)){const el=document.getElementById(eid);if(el)el.value=item[key]||'';}
   // Populate subcategory text input and datalist suggestions
   const subcatTxt = document.getElementById('d_subcat_txt');
@@ -5195,6 +5393,7 @@ function saveDrawer(){
   item.lowAlert=parseInt(document.getElementById('d_alert').value)||2;
   item.bulk    =document.getElementById('d_bulk')?.checked||false;
   item.url     =document.getElementById('d_url').value.trim();
+  item.source  =document.getElementById('d_source').value.trim();
   item.notes   =document.getElementById('d_notes').value.trim();
   Object.assign(item, getDimsFromForm('d'));
   save(); closeDrawer(); refresh(); _sfx.edit(); toast('Changes saved ✓');
@@ -5214,7 +5413,7 @@ function openAddModal(){
 }
 function closeAdd(){
   document.getElementById('addOv').classList.remove('on');
-  ['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert','f_source'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f_qty').value='1';
   const bulkCb = document.getElementById('f_bulk'); if(bulkCb) bulkCb.checked=false;
   const bulkFields = document.getElementById('f_bulk_fields'); if(bulkFields) bulkFields.style.display='none';
@@ -5261,7 +5460,7 @@ function addItem(){
   const qty = isBulk ? (parseInt(document.getElementById('f_qty').value)||1) : 1;
   const newId = uid();
   const imagesToUpload = pendingAddImages.slice(); // capture before closeAdd clears them
-  inv.push({id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:(document.getElementById('f_subcat_txt').value||'').trim(),subtype:document.getElementById('f_subtype').value||'',platform,platforms:selPlats,cost:parseFloat(document.getElementById('f_cost').value)||0,price,qty,bulk:isBulk,fees:parseFloat(document.getElementById('f_fees').value)||0,ship:parseFloat(document.getElementById('f_ship').value)||0,lowAlert:isBulk?(parseInt(document.getElementById('f_alert').value)||2):2,notes:document.getElementById('f_notes').value.trim(),images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),added:new Date().toISOString()});
+  inv.push({id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:(document.getElementById('f_subcat_txt').value||'').trim(),subtype:document.getElementById('f_subtype').value||'',platform,platforms:selPlats,cost:parseFloat(document.getElementById('f_cost').value)||0,price,qty,bulk:isBulk,fees:parseFloat(document.getElementById('f_fees').value)||0,ship:parseFloat(document.getElementById('f_ship').value)||0,lowAlert:isBulk?(parseInt(document.getElementById('f_alert').value)||2):2,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),added:new Date().toISOString()});
   save(); closeAdd(); refresh(); _sfx.create(); toast('Item added ✓');
 
   // Upload images to Storage in background, replace base64 with URLs
@@ -5596,6 +5795,34 @@ function renderInsights() {
       </div>`).join('')
   ) : '';
 
+  // ── Section: Source Performance ────────────────────────────────────────────
+  const srcMap = {};
+  for (const { item, revenue, profit, unitsSold } of itemStats) {
+    const src = item.source || 'Unknown';
+    if (!srcMap[src]) srcMap[src] = { revenue: 0, profit: 0, units: 0, items: 0, cost: 0 };
+    srcMap[src].revenue += revenue;
+    srcMap[src].profit += profit;
+    srcMap[src].units += unitsSold;
+    srcMap[src].items++;
+    srcMap[src].cost += (item.cost || 0) * (item.qty || 1);
+  }
+  const topSources = Object.entries(srcMap).filter(([s]) => s !== 'Unknown').sort((a, b) => b[1].profit - a[1].profit).slice(0, 6);
+  const maxSrcProfit = topSources[0]?.[1]?.profit || 1;
+  const sourceSection = topSources.length ? insightCard('📍', 'Source Performance',
+    topSources.map(([src, d]) => {
+      const roi = d.cost > 0 ? d.profit / d.cost : 0;
+      return `<div style="padding:6px 0">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;font-weight:600">${escHtml(src)}</span>
+          <span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--good);font-weight:700">${fmt(d.profit)}</span>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${d.units} sold · ${d.items} item${d.items !== 1 ? 's' : ''} · ${fmt(d.revenue)} rev · ${pct(roi)} ROI</div>
+        ${bar(Math.max(d.profit, 0), maxSrcProfit, d.profit >= 0 ? 'var(--good)' : 'var(--danger)')}
+      </div>`;
+    }).join(''),
+    'var(--accent2)'
+  ) : '';
+
   // ── Section: Expense health ───────────────────────────────────────────────
   const expRatio = totalRevenue > 0 ? totalExp / totalRevenue : 0;
   const expHealth = expRatio < 0.1 ? ['✅','Low','var(--good)'] : expRatio < 0.25 ? ['⚠️','Moderate','var(--warn)'] : ['🔴','High','var(--danger)'];
@@ -5699,6 +5926,7 @@ function renderInsights() {
           ${roiSection}
           ${catSection}
           ${platSection}
+          ${sourceSection}
           ${pricingSection}
           ${expSection}
         </div>
@@ -8168,6 +8396,241 @@ if (!navigator.onLine) updateOnlineStatus();
 
 setDefaultExpDate();
 refresh();
+
+// ── BATCH SCAN MODE ───────────────────────────────────────────────────────
+let _batchStream = null;
+let _batchActive = false;
+let _batchItems  = [];
+let _batchScannedCodes = new Set();
+let _batchRaf = null;
+
+async function openBatchScan() {
+  _batchItems = [];
+  _batchScannedCodes.clear();
+  document.getElementById('batchOv').classList.add('on');
+  document.getElementById('batchSource').value = '';
+  renderBatchList();
+
+  try {
+    _batchStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    const video = document.getElementById('batchVideo');
+    video.srcObject = _batchStream;
+    await video.play();
+    _batchActive = true;
+    document.getElementById('batchScanStatus').textContent = 'Point camera at barcodes…';
+
+    if ('BarcodeDetector' in window) {
+      _runBatchDetector(video);
+    } else {
+      const ok = await _ensureQuagga();
+      if (ok) _runBatchQuagga(video);
+      else document.getElementById('batchScanStatus').textContent = 'Camera ready — use + Manual to add items';
+    }
+  } catch(e) {
+    document.getElementById('batchScanStatus').textContent = 'Camera unavailable — use + Manual to add items';
+  }
+}
+
+function closeBatchScan() {
+  _batchActive = false;
+  if (_batchRaf) cancelAnimationFrame(_batchRaf);
+  if (_batchStream) { _batchStream.getTracks().forEach(t => t.stop()); _batchStream = null; }
+  document.getElementById('batchOv').classList.remove('on');
+}
+
+function _runBatchDetector(video) {
+  let detector;
+  try {
+    detector = new BarcodeDetector({
+      formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf']
+    });
+  } catch { detector = new BarcodeDetector(); }
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  function tick() {
+    if (!_batchActive) return;
+    if (video.readyState >= 2) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+      detector.detect(canvas).then(codes => {
+        for (const c of codes) {
+          const val = c.rawValue.trim();
+          if (val && !_batchScannedCodes.has(val)) {
+            _batchScannedCodes.add(val);
+            batchAddScanned(val);
+          }
+        }
+      }).catch(() => {});
+    }
+    _batchRaf = requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+function _runBatchQuagga(video) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  function tick() {
+    if (!_batchActive) return;
+    if (video.readyState >= 2) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      Quagga.decodeSingle({
+        decoder: { readers: ['ean_reader','upc_reader','upc_e_reader','code_128_reader'] },
+        locate: true,
+        src: canvas.toDataURL('image/jpeg', 0.8),
+      }, result => {
+        if (result && result.codeResult) {
+          const val = result.codeResult.code.trim();
+          if (val && !_batchScannedCodes.has(val)) {
+            _batchScannedCodes.add(val);
+            batchAddScanned(val);
+          }
+        }
+      });
+    }
+    setTimeout(() => { if (_batchActive) _batchRaf = requestAnimationFrame(tick); }, 500);
+  }
+  tick();
+}
+
+function batchAddScanned(upc) {
+  // Check if already in inventory
+  const existing = inv.find(i => i.upc === upc);
+  _batchItems.push({
+    id: uid(),
+    upc: upc,
+    name: existing ? existing.name : '',
+    cost: existing ? existing.cost : 0,
+    price: existing ? existing.price : 0,
+    category: existing ? (existing.category || '') : '',
+    isExisting: !!existing,
+  });
+  _sfx.create();
+  document.getElementById('batchScanStatus').textContent = 'Scanned: ' + upc + ' ✓';
+  renderBatchList();
+}
+
+function batchManualAdd() {
+  _batchItems.push({
+    id: uid(),
+    upc: '',
+    name: '',
+    cost: 0,
+    price: 0,
+    category: '',
+    isExisting: false,
+  });
+  renderBatchList();
+  // Focus the last name input
+  setTimeout(() => {
+    const inputs = document.querySelectorAll('#batchList .batch-name-input');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  }, 50);
+}
+
+function batchRemoveItem(id) {
+  _batchItems = _batchItems.filter(i => i.id !== id);
+  renderBatchList();
+}
+
+function renderBatchList() {
+  const list = document.getElementById('batchList');
+  const empty = document.getElementById('batchEmpty');
+  const countEl = document.getElementById('batchCount');
+  const btn = document.getElementById('batchAddBtn');
+
+  countEl.textContent = _batchItems.length + ' item' + (_batchItems.length !== 1 ? 's' : '');
+  btn.disabled = !_batchItems.length;
+
+  if (!_batchItems.length) {
+    empty.style.display = '';
+    list.querySelectorAll('.batch-item').forEach(el => el.remove());
+    return;
+  }
+  empty.style.display = 'none';
+
+  // Rebuild items
+  const html = _batchItems.map((item, idx) => `<div class="batch-item" data-batch-id="${item.id}">
+    <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;width:20px;text-align:center">${idx + 1}</div>
+    <div class="batch-item-info">
+      <input class="batch-name-input" type="text" value="${escHtml(item.name)}" placeholder="Item name *"
+        oninput="_batchItems.find(i=>i.id==='${item.id}').name=this.value"
+        style="background:none;border:none;border-bottom:1px solid var(--border);color:var(--text);font-size:12px;font-weight:600;width:100%;padding:3px 0;font-family:inherit">
+      <div class="batch-item-upc">${item.upc ? item.upc : 'No barcode'}${item.isExisting ? ' · <span style="color:var(--accent)">found in inventory</span>' : ''}</div>
+    </div>
+    <div class="batch-item-fields">
+      <input type="number" placeholder="Cost" value="${item.cost || ''}" step="0.01"
+        oninput="_batchItems.find(i=>i.id==='${item.id}').cost=parseFloat(this.value)||0">
+      <input type="number" placeholder="Price" value="${item.price || ''}" step="0.01"
+        oninput="_batchItems.find(i=>i.id==='${item.id}').price=parseFloat(this.value)||0">
+    </div>
+    <button class="batch-item-rm" onclick="batchRemoveItem('${item.id}')">×</button>
+  </div>`).join('');
+
+  // Keep empty hidden, replace items
+  const existingItems = list.querySelectorAll('.batch-item');
+  existingItems.forEach(el => el.remove());
+  empty.insertAdjacentHTML('afterend', html);
+}
+
+function batchAddAll() {
+  const source = document.getElementById('batchSource').value.trim();
+  let added = 0;
+
+  for (const item of _batchItems) {
+    const name = item.name.trim();
+    if (!name) continue;
+
+    const cat = item.category || '';
+    const skuDate = new Date().toISOString().slice(0,10).replace(/-/g,'');
+    const skuCat = (cat || 'GEN').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4).padEnd(3,'X');
+    const skuRand = Math.random().toString(36).slice(2,5).toUpperCase();
+    const autoSku = skuCat + '-' + skuDate + '-' + skuRand;
+
+    inv.push({
+      id: uid(),
+      name: name,
+      sku: autoSku,
+      upc: item.upc || '',
+      category: cat,
+      subcategory: '',
+      subtype: '',
+      platform: 'Other',
+      platforms: [],
+      cost: item.cost || 0,
+      price: item.price || 0,
+      qty: 1,
+      bulk: false,
+      fees: 0,
+      ship: 0,
+      lowAlert: 2,
+      notes: source ? 'Batch scanned from ' + source : 'Batch scanned',
+      source: source,
+      images: [],
+      image: null,
+      added: new Date().toISOString(),
+    });
+    added++;
+  }
+
+  if (!added) { toast('No items with names to add', true); return; }
+
+  save();
+  refresh();
+  _sfx.create();
+  toast(added + ' item' + (added !== 1 ? 's' : '') + ' added to inventory ✓');
+  closeBatchScan();
+  autoSync();
+}
 
 // Boot auth system
 initAuth();
