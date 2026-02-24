@@ -6251,21 +6251,22 @@ function renderInsights() {
   // ── Section: Inventory-Only Cards (useful before any sales) ──────────────
 
   // Inventory Age Distribution
-  const ageBuckets = { '< 7 days': 0, '1–2 weeks': 0, '2–4 weeks': 0, '1–2 months': 0, '2–3 months': 0, '3+ months': 0 };
-  const ageBucketCost = { '< 7 days': 0, '1–2 weeks': 0, '2–4 weeks': 0, '1–2 months': 0, '2–3 months': 0, '3+ months': 0 };
+  const ageBuckets = { '< 7 days': 0, '1-2 weeks': 0, '2-4 weeks': 0, '1-2 months': 0, '2-3 months': 0, '3+ months': 0 };
+  const ageBucketCost = { '< 7 days': 0, '1-2 weeks': 0, '2-4 weeks': 0, '1-2 months': 0, '2-3 months': 0, '3+ months': 0 };
   for (const item of inv) {
-    if ((item.qty || 0) <= 0) continue;
-    const days = Math.floor((now - new Date(item.added || now)) / msDay);
-    const bucket = days < 7 ? '< 7 days' : days < 14 ? '1–2 weeks' : days < 30 ? '2–4 weeks' : days < 60 ? '1–2 months' : days < 90 ? '2–3 months' : '3+ months';
-    ageBuckets[bucket] += (item.qty || 1);
-    ageBucketCost[bucket] += (item.cost || 0) * (item.qty || 1);
+    const q = item.qty != null ? item.qty : 1;
+    if (q <= 0) continue;
+    const days = item.added ? Math.floor((now - new Date(item.added)) / msDay) : 0;
+    const bucket = days < 7 ? '< 7 days' : days < 14 ? '1-2 weeks' : days < 30 ? '2-4 weeks' : days < 60 ? '1-2 months' : days < 90 ? '2-3 months' : '3+ months';
+    ageBuckets[bucket] += (q || 1);
+    ageBucketCost[bucket] += (item.cost || 0) * (q || 1);
   }
   const maxAgeBucket = Math.max(...Object.values(ageBuckets), 1);
-  const ageColors = { '< 7 days': 'var(--good)', '1–2 weeks': 'var(--good)', '2–4 weeks': 'var(--accent)', '1–2 months': 'var(--warn)', '2–3 months': 'var(--accent2)', '3+ months': 'var(--danger)' };
-  const inStockCount = inv.filter(i => (i.qty || 0) > 0).length;
+  const ageColors = { '< 7 days': 'var(--good)', '1-2 weeks': 'var(--good)', '2-4 weeks': 'var(--accent)', '1-2 months': 'var(--warn)', '2-3 months': 'var(--accent2)', '3+ months': 'var(--danger)' };
+  const inStockCount = inv.filter(i => (i.qty != null ? i.qty : 1) > 0).length;
 
-  const ageSection = inStockCount >= 2 ? insightCard('📅', 'Inventory Age Distribution',
-    `<div style="font-size:10px;color:var(--muted);margin-bottom:10px">${inStockCount} items in stock — how long have they been listed?</div>` +
+  const ageSection = inStockCount >= 1 ? insightCard('📅', 'Inventory Age Distribution',
+    `<div style="font-size:10px;color:var(--muted);margin-bottom:10px">${inStockCount} items in stock</div>` +
     Object.entries(ageBuckets).filter(([, v]) => v > 0).map(([label, count]) => `<div style="padding:4px 0">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:11px">${label}</span>
@@ -6279,21 +6280,22 @@ function renderInsights() {
   // Cost Invested by Category
   const invCatMap = {};
   for (const item of inv) {
-    if ((item.qty || 0) <= 0) continue;
+    const q = item.qty != null ? item.qty : 1;
+    if (q <= 0) continue;
     const cat = item.category || 'Uncategorized';
     if (!invCatMap[cat]) invCatMap[cat] = { cost: 0, retail: 0, units: 0, items: 0 };
-    invCatMap[cat].cost += (item.cost || 0) * (item.qty || 1);
-    invCatMap[cat].retail += (item.price || 0) * (item.qty || 1);
-    invCatMap[cat].units += (item.qty || 1);
+    invCatMap[cat].cost += (item.cost || 0) * (q || 1);
+    invCatMap[cat].retail += (item.price || 0) * (q || 1);
+    invCatMap[cat].units += (q || 1);
     invCatMap[cat].items++;
   }
   const topInvCats = Object.entries(invCatMap).sort((a, b) => b[1].cost - a[1].cost).slice(0, 6);
   const maxInvCatCost = topInvCats[0]?.[1]?.cost || 1;
-  const totalInvCost = inv.filter(i => (i.qty||0)>0).reduce((a, i) => a + (i.cost||0)*(i.qty||1), 0);
-  const totalInvRetail = inv.filter(i => (i.qty||0)>0).reduce((a, i) => a + (i.price||0)*(i.qty||1), 0);
+  const totalInvCost = inv.filter(i => (i.qty != null ? i.qty : 1) > 0).reduce((a, i) => { const q = i.qty != null ? i.qty : 1; return a + (i.cost||0)*q; }, 0);
+  const totalInvRetail = inv.filter(i => (i.qty != null ? i.qty : 1) > 0).reduce((a, i) => { const q = i.qty != null ? i.qty : 1; return a + (i.price||0)*q; }, 0);
   const potentialProfit = totalInvRetail - totalInvCost;
 
-  const invCostSection = topInvCats.length >= 2 ? insightCard('💵', 'Capital Invested by Category',
+  const invCostSection = topInvCats.length >= 1 ? insightCard('💵', 'Capital Invested by Category',
     `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
       <div style="background:var(--surface);border:1px solid var(--border);padding:10px;text-align:center">
         <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px">Invested</div>
@@ -6324,16 +6326,16 @@ function renderInsights() {
 
   // Listing Readiness Checklist
   const readyChecks = {
-    noPhoto: inv.filter(i => (i.qty||0) > 0 && (!i.images || !i.images.length)),
-    noPrice: inv.filter(i => (i.qty||0) > 0 && !i.price),
+    noPhoto: inv.filter(i => (i.qty != null ? i.qty : 1) > 0 && (!i.images || !i.images.length)),
+    noPrice: inv.filter(i => (i.qty != null ? i.qty : 1) > 0 && !i.price),
     noPlatform: inv.filter(i => {
-      if ((i.qty||0) <= 0) return false;
+      if ((i.qty != null ? i.qty : 1) <= 0) return false;
       const p = getPlatforms(i);
       return !p.length || (p.length === 1 && (p[0] === 'Unlisted' || p[0] === 'Other'));
     }),
-    noCost: inv.filter(i => (i.qty||0) > 0 && !i.cost),
-    noCategory: inv.filter(i => (i.qty||0) > 0 && !i.category),
-    noCondition: inv.filter(i => (i.qty||0) > 0 && !i.condition),
+    noCost: inv.filter(i => (i.qty != null ? i.qty : 1) > 0 && !i.cost),
+    noCategory: inv.filter(i => (i.qty != null ? i.qty : 1) > 0 && !i.category),
+    noCondition: inv.filter(i => (i.qty != null ? i.qty : 1) > 0 && !i.condition),
   };
   const totalIssues = Object.values(readyChecks).reduce((a, arr) => a + arr.length, 0);
 
@@ -6368,19 +6370,20 @@ function renderInsights() {
   // ── Section: Source Investment (inventory-only, no sales needed) ──────────
   const srcInvMap = {};
   for (const item of inv) {
-    if ((item.qty || 0) <= 0) continue;
+    const q = item.qty != null ? item.qty : 1;
+    if (q <= 0) continue;
     const src = item.source || '';
     if (!src) continue;
     if (!srcInvMap[src]) srcInvMap[src] = { cost: 0, retail: 0, items: 0, units: 0 };
-    srcInvMap[src].cost += (item.cost || 0) * (item.qty || 1);
-    srcInvMap[src].retail += (item.price || 0) * (item.qty || 1);
+    srcInvMap[src].cost += (item.cost || 0) * (q || 1);
+    srcInvMap[src].retail += (item.price || 0) * (q || 1);
     srcInvMap[src].items++;
-    srcInvMap[src].units += (item.qty || 1);
+    srcInvMap[src].units += (q || 1);
   }
   const topSrcInv = Object.entries(srcInvMap).sort((a, b) => b[1].cost - a[1].cost).slice(0, 5);
   const maxSrcInvCost = topSrcInv[0]?.[1]?.cost || 1;
 
-  const srcInvSection = topSrcInv.length >= 2 ? insightCard('🗺️', 'Where Your Money Goes — by Source',
+  const srcInvSection = topSrcInv.length >= 1 ? insightCard('🗺️', 'Where Your Money Goes — by Source',
     topSrcInv.map(([src, d]) => {
       const potROI = d.cost > 0 ? (d.retail - d.cost) / d.cost : 0;
       return `<div style="padding:5px 0">
