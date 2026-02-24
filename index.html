@@ -5719,13 +5719,25 @@ function renderInsights() {
   // ── Summary KPIs ──────────────────────────────────────────────────────────
   const totalSalesCount = sales.reduce((a,s)=>a+(s.qty||0),0);
   const avgMargin = sellers.length ? sellers.reduce((a,s)=>a+s.margin,0)/sellers.length : 0;
+
+  // ── Sell-Through Rate calc (needed for KPIs) ─────────────────────────────
+  const totalUnitsAdded = inv.reduce((a, i) => {
+    const iSales = sales.filter(s => s.itemId === i.id);
+    const sold = iSales.reduce((t, s) => t + (s.qty || 0), 0);
+    return a + (i.qty || 0) + sold;
+  }, 0);
+  const totalUnitsSold  = sales.reduce((a, s) => a + (s.qty || 0), 0);
+  const sellThrough     = totalUnitsAdded > 0 ? totalUnitsSold / totalUnitsAdded : 0;
+  const stColor = r => r >= 0.5 ? 'var(--good)' : r >= 0.25 ? 'var(--warn)' : 'var(--danger)';
+
   const kpis = `
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px">
       ${[
         ['Total Revenue', fmt(totalRevenue), 'var(--accent)'],
         ['Net Profit', fmt(totalProfit), totalProfit>=0?'var(--good)':'var(--danger)'],
         ['Units Sold', totalSalesCount, 'var(--accent3)'],
         ['Avg Margin', pct(avgMargin), avgMargin>=0.2?'var(--good)':'var(--warn)'],
+        ['Sell-Through', totalUnitsAdded > 0 ? (sellThrough * 100).toFixed(0) + '%' : '—', stColor(sellThrough)],
       ].map(([lbl,val,col])=>`
         <div style="background:var(--surface2);border:1px solid var(--border);padding:12px 14px">
           <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">${lbl}</div>
@@ -5738,6 +5750,28 @@ function renderInsights() {
     recentHot.map(s => itemRow(s, s => `
       <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--accent);font-weight:700">${s.recentSales30.length} sale${s.recentSales30.length>1?'s':''}</div>
       <div style="font-size:10px;color:var(--muted)">${fmt(s.revenue)} rev</div>`)).join(''),
+    'var(--accent)'
+  ) : '';
+
+  // ── Section: Best Sellers (all-time) ──────────────────────────────────────
+  const bestSellers = [...itemStats].filter(s => s.unitsSold > 0).sort((a, b) => b.unitsSold - a.unitsSold).slice(0, 8);
+  const maxSold = bestSellers[0]?.unitsSold || 1;
+  const bestSellerSection = bestSellers.length ? insightCard('🏆', 'Best Sellers — All Time',
+    bestSellers.map((s, i) => {
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="font-size:10px;color:var(--muted)">#${i+1}</span>`;
+      const velocity = s.daysListed > 0 ? (s.unitsSold / s.daysListed * 30).toFixed(1) : '—';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+        <span style="width:22px;text-align:center;flex-shrink:0">${medal}</span>
+        <div style="min-width:0;flex:1">
+          <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onclick="openDrawer('${s.item.id}')">${s.item.name}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px">${s.item.category || '—'} · ~${velocity}/mo velocity</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:13px;font-family:'Syne',sans-serif;font-weight:700;color:var(--accent)">${s.unitsSold} sold</div>
+          <div style="font-size:10px;color:var(--muted)">${fmt(s.revenue)} rev</div>
+        </div>
+      </div>` + bar(s.unitsSold, maxSold);
+    }).join(''),
     'var(--accent)'
   ) : '';
 
@@ -5758,7 +5792,102 @@ function renderInsights() {
     'var(--accent3)'
   ) : '';
 
+  // ── Section: ROI Breakdown by Category/Source/Platform ──────────────────
+  // Category ROI
+  const catROI = Object.entries(catMap).map(([cat, d]) => {
+    const catCost = inv.filter(i => (i.category || 'Uncategorized') === cat)
+      .reduce((a, i) => a + (i.cost || 0) * ((i.qty || 0) + sales.filter(s => s.itemId === i.id).reduce((t, s) => t + (s.qty || 0), 0)), 0);
+    const roi = catCost > 0 ? d.profit / catCost : 0;
+    return { name: cat, profit: d.profit, cost: catCost, roi, units: d.units };
+  }).filter(r => r.units > 0).sort((a, b) => b.roi - a.roi).slice(0, 5);
+
+  // Source ROI
+  const srcROI = Object.entries(srcMap).filter(([s]) => s !== 'Unknown').map(([src, d]) => {
+    const roi = d.cost > 0 ? d.profit / d.cost : 0;
+    return { name: src, profit: d.profit, cost: d.cost, roi, units: d.units };
+  }).filter(r => r.units > 0).sort((a, b) => b.roi - a.roi).slice(0, 5);
+
+  // Platform ROI
+  const platROI = Object.entries(platMap).map(([plat, d]) => {
+    const platCost = sales.filter(s => {
+      const it = inv.find(i => i.id === s.itemId);
+      return (s.platform || (it ? it.platform || 'Other' : 'Other')) === plat;
+    }).reduce((a, s) => {
+      const it = inv.find(i => i.id === s.itemId);
+      return a + (it ? (it.cost || 0) * (s.qty || 0) : 0);
+    }, 0);
+    const platProfit = d.revenue - platCost;
+    const roi = platCost > 0 ? platProfit / platCost : 0;
+    return { name: plat, profit: platProfit, cost: platCost, roi, units: d.units };
+  }).filter(r => r.units > 0).sort((a, b) => b.roi - a.roi).slice(0, 5);
+
+  const roiRow = (items, label) => {
+    if (!items.length) return '';
+    const maxROI = Math.max(...items.map(r => Math.abs(r.roi)), 0.01);
+    return `<div style="margin-bottom:14px">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${label}</div>
+      ${items.map(r => `<div style="padding:4px 0">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:11px">${escHtml(r.name)}</span>
+          <span style="font-size:12px;font-family:'DM Mono',monospace;font-weight:700;color:${r.roi >= 0 ? 'var(--accent3)' : 'var(--danger)'}">${pct(r.roi)}</span>
+        </div>
+        <div style="font-size:9px;color:var(--muted);margin-top:1px">${fmt(r.profit)} profit on ${fmt(r.cost)} invested · ${r.units} unit${r.units !== 1 ? 's' : ''}</div>
+        ${bar(Math.abs(r.roi), maxROI, r.roi >= 0 ? 'var(--accent3)' : 'var(--danger)')}
+      </div>`).join('')}
+    </div>`;
+  };
+
+  const roiBreakdownContent = roiRow(catROI, 'By Category') + roiRow(srcROI, 'By Source') + roiRow(platROI, 'By Platform');
+  const roiBreakdownSection = roiBreakdownContent.trim() ? insightCard('🔬', 'ROI Breakdown',
+    roiBreakdownContent,
+    'var(--accent3)'
+  ) : '';
+
   // ── Section: Not moving ───────────────────────────────────────────────────
+  // ── Section: Sell-Through Rate ─────────────────────────────────────────────
+
+  // 30/60/90 day sell-through
+  const stRates = [30, 60, 90].map(days => {
+    const cutoff = new Date(now - days * msDay);
+    // Items added in that window
+    const addedInWindow = inv.filter(i => new Date(i.added || now) >= cutoff);
+    const unitsAddedW = addedInWindow.reduce((a, i) => {
+      const iSales = sales.filter(s => s.itemId === i.id);
+      const sold = iSales.reduce((t, s) => t + (s.qty || 0), 0);
+      return a + (i.qty || 0) + sold;
+    }, 0);
+    const soldInWindow = sales.filter(s => {
+      const it = inv.find(i => i.id === s.itemId);
+      return it && new Date(it.added || now) >= cutoff;
+    }).reduce((a, s) => a + (s.qty || 0), 0);
+    const rate = unitsAddedW > 0 ? soldInWindow / unitsAddedW : 0;
+    return { days, rate, sold: soldInWindow, added: unitsAddedW };
+  });
+
+  const stAdvice = sellThrough >= 0.5 ? 'Excellent sell-through — your sourcing is well-calibrated'
+    : sellThrough >= 0.3 ? 'Solid rate — look for ways to move stale items faster'
+    : sellThrough >= 0.15 ? 'Below average — consider reducing new sourcing until existing stock moves'
+    : 'Low sell-through — focus on clearing current inventory before buying more';
+
+  const sellThroughSection = totalUnitsAdded > 0 ? insightCard('📊', 'Sell-Through Rate',
+    `<div style="display:flex;gap:12px;margin-bottom:14px">
+      <div style="flex:1;background:var(--surface);border:1px solid var(--border);padding:12px;text-align:center">
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:${stColor(sellThrough)}">${(sellThrough * 100).toFixed(1)}%</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px">All Time</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${totalUnitsSold} of ${totalUnitsAdded} units</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+      ${stRates.map(r => `<div style="background:var(--surface);border:1px solid var(--border);padding:10px;text-align:center">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:${stColor(r.rate)}">${(r.rate * 100).toFixed(0)}%</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">${r.days}d cohort</div>
+        <div style="font-size:9px;color:var(--muted)">${r.sold}/${r.added}</div>
+      </div>`).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">💡 ${stAdvice}</div>`,
+    stColor(sellThrough)
+  ) : '';
+
   const staleSection = stale.length ? insightCard('🕸️', 'Not Moving — Consider Repricing',
     stale.map(s => itemRow(s, s => `
       <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--warn);font-weight:700">${s.daysListed}d listed</div>
@@ -5918,12 +6047,15 @@ function renderInsights() {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div>
           ${hotSection}
+          ${bestSellerSection}
           ${profitSection}
           ${capitalSection}
           ${staleSection}
         </div>
         <div>
           ${roiSection}
+          ${roiBreakdownSection}
+          ${sellThroughSection}
           ${catSection}
           ${platSection}
           ${sourceSection}
@@ -6161,6 +6293,7 @@ function renderReports() {
       <div class="report-tabs" style="margin-top:14px">
         <button class="report-tab ${reportMode==='weekly'?'active':''}"  onclick="setReportMode('weekly')">Weekly</button>
         <button class="report-tab ${reportMode==='monthly'?'active':''}" onclick="setReportMode('monthly')">Monthly</button>
+        <button class="report-tab" id="plTabBtn" onclick="showPLReport()">P&amp;L Statement</button>
       </div>
 
       <!-- Period nav -->
@@ -6175,7 +6308,204 @@ function renderReports() {
       ${trendHtml}
       ${salesHtml}
       ${expListHtml}
+    </div>
+    <div id="plReportContent" style="display:none"></div>`;
+}
+
+function showPLReport() {
+  // Hide regular report content, show P&L
+  const panel = document.getElementById('reportsContent').querySelector('.panel');
+  if (!panel) return;
+  const regularDivs = panel.querySelectorAll('.period-summary-grid, .period-section-ttl, .period-nav, .report-tabs + *');
+
+  // Toggle P&L tab
+  const plBtn = document.getElementById('plTabBtn');
+  const isActive = plBtn.classList.contains('active');
+
+  if (isActive) {
+    // Switch back to regular
+    plBtn.classList.remove('active');
+    document.getElementById('plReportContent').style.display = 'none';
+    setReportMode(reportMode); // re-render regular view
+    return;
+  }
+
+  // Activate P&L
+  document.querySelectorAll('.report-tab').forEach(b => b.classList.remove('active'));
+  plBtn.classList.add('active');
+
+  renderPLStatement();
+}
+
+function renderPLStatement() {
+  const el = document.getElementById('plReportContent');
+  if (!el) return;
+
+  const now = new Date();
+  const msDay = 86400000;
+
+  // All-time figures
+  let revenue = 0, cogs = 0, totalFees = 0, totalShip = 0;
+  for (const s of sales) {
+    const it = inv.find(i => i.id === s.itemId);
+    revenue   += (s.price || 0) * (s.qty || 0);
+    cogs      += it ? (it.cost || 0) * (s.qty || 0) : 0;
+    totalFees += (s.fees || 0);
+    totalShip += (s.ship || 0);
+  }
+  const grossProfit = revenue - cogs;
+  const totalExpenses = expenses.reduce((a, e) => a + (e.amount || 0), 0);
+
+  // Expense breakdown by category
+  const expByCat = {};
+  for (const e of expenses) {
+    expByCat[e.category || 'Other'] = (expByCat[e.category || 'Other'] || 0) + (e.amount || 0);
+  }
+
+  const netProfit = grossProfit - totalFees - totalShip - totalExpenses;
+  const netMargin = revenue > 0 ? netProfit / revenue : 0;
+
+  // Unsold inventory value
+  const unsoldCost = inv.reduce((a, i) => a + (i.cost || 0) * (i.qty || 0), 0);
+  const unsoldRetail = inv.reduce((a, i) => a + (i.price || 0) * (i.qty || 0), 0);
+
+  // Monthly trend (last 6 months)
+  const months = [];
+  for (let m = 5; m >= 0; m--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - m, 1);
+    const mStart = new Date(d.getFullYear(), d.getMonth(), 1);
+    const mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
+    const mSales = sales.filter(s => { const sd = new Date(s.date); return sd >= mStart && sd <= mEnd; });
+    const mRev = mSales.reduce((a, s) => a + (s.price || 0) * (s.qty || 0), 0);
+    const mCogs = mSales.reduce((a, s) => { const it = inv.find(i => i.id === s.itemId); return a + (it ? (it.cost || 0) * (s.qty || 0) : 0); }, 0);
+    const mFees = mSales.reduce((a, s) => a + (s.fees || 0) + (s.ship || 0), 0);
+    const mExp = expenses.filter(e => { const ed = new Date(e.date); return ed >= mStart && ed <= mEnd; }).reduce((a, e) => a + (e.amount || 0), 0);
+    const mNet = mRev - mCogs - mFees - mExp;
+    months.push({
+      label: mStart.toLocaleString('default', { month: 'short', year: '2-digit' }),
+      revenue: mRev, cogs: mCogs, fees: mFees, expenses: mExp, net: mNet,
+      units: mSales.reduce((a, s) => a + (s.qty || 0), 0),
+    });
+  }
+
+  const plLine = (label, amount, indent = 0, bold = false, color = '') => {
+    const style = `padding:${bold ? '10px' : '6px'} 0;${indent ? 'padding-left:' + (indent * 20) + 'px;' : ''}${bold ? 'font-weight:700;border-top:1px solid var(--border);' : ''}`;
+    const valStyle = `font-family:'DM Mono',monospace;font-weight:${bold ? '700' : '600'};font-size:${bold ? '14px' : '12px'};${color ? 'color:' + color : ''}`;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;${style}">
+      <span style="font-size:${bold ? '13px' : '12px'}">${label}</span>
+      <span style="${valStyle}">${fmt(amount)}</span>
     </div>`;
+  };
+
+  const maxMonthRev = Math.max(...months.map(m => m.revenue), 1);
+
+  el.style.display = '';
+  el.innerHTML = `
+    <div style="margin-top:16px">
+      <!-- P&L Statement -->
+      <div style="background:var(--surface2);border:1px solid var(--border);padding:20px 24px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px">Profit & Loss Statement</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">All time · ${sales.length} sales · ${inv.length} items</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:${netProfit >= 0 ? 'var(--good)' : 'var(--danger)'}">${fmt(netProfit)}</div>
+            <div style="font-size:10px;color:var(--muted)">net profit · ${(netMargin * 100).toFixed(1)}% margin</div>
+          </div>
+        </div>
+
+        <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:600">Revenue</div>
+        ${plLine('Sales Revenue', revenue, 1)}
+        ${plLine('Total Revenue', revenue, 0, true, 'var(--accent)')}
+
+        <div style="font-size:10px;color:var(--warn);text-transform:uppercase;letter-spacing:1.5px;margin:14px 0 8px;font-weight:600">Cost of Goods Sold</div>
+        ${plLine('Product Cost (COGS)', cogs, 1)}
+        ${plLine('Total COGS', cogs, 0, true, 'var(--warn)')}
+
+        <div style="margin:14px 0;padding:12px 0;border-top:2px solid var(--border);border-bottom:1px solid var(--border)">
+          ${plLine('Gross Profit', grossProfit, 0, true, grossProfit >= 0 ? 'var(--good)' : 'var(--danger)')}
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">Gross margin: ${revenue > 0 ? ((grossProfit / revenue) * 100).toFixed(1) : '0.0'}%</div>
+        </div>
+
+        <div style="font-size:10px;color:var(--danger);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:600">Operating Expenses</div>
+        ${plLine('Platform Fees', totalFees, 1)}
+        ${plLine('Shipping Costs', totalShip, 1)}
+        ${Object.entries(expByCat).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => plLine(cat, amt, 1)).join('')}
+        ${plLine('Total Expenses', totalFees + totalShip + totalExpenses, 0, true, 'var(--danger)')}
+
+        <div style="margin-top:16px;padding-top:14px;border-top:2px solid var(--border)">
+          ${plLine('Net Profit / (Loss)', netProfit, 0, true, netProfit >= 0 ? 'var(--good)' : 'var(--danger)')}
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">Net margin: ${(netMargin * 100).toFixed(1)}% · ROI: ${cogs > 0 ? ((netProfit / cogs) * 100).toFixed(1) : '—'}%</div>
+        </div>
+      </div>
+
+      <!-- Inventory Position -->
+      <div style="background:var(--surface2);border:1px solid var(--border);padding:18px 24px;margin-bottom:16px">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;margin-bottom:12px">Inventory Position</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+          <div style="background:var(--surface);border:1px solid var(--border);padding:12px;text-align:center">
+            <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Units In Stock</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--accent)">${inv.reduce((a, i) => a + (i.qty || 0), 0)}</div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);padding:12px;text-align:center">
+            <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Cost Basis</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--warn)">${fmt(unsoldCost)}</div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);padding:12px;text-align:center">
+            <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Potential Revenue</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--good)">${fmt(unsoldRetail)}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monthly Trend -->
+      <div style="background:var(--surface2);border:1px solid var(--border);padding:18px 24px">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;margin-bottom:12px">6-Month Trend</div>
+        <div style="overflow-x:auto">
+          <table class="inv-table" style="font-size:11px">
+            <thead><tr>
+              <th>Month</th><th>Units</th><th>Revenue</th><th>COGS</th><th>Fees+Ship</th><th>Expenses</th><th>Net</th>
+            </tr></thead>
+            <tbody>${months.map(m => `<tr>
+              <td style="font-weight:600">${m.label}</td>
+              <td>${m.units}</td>
+              <td style="color:var(--accent)">${fmt(m.revenue)}</td>
+              <td style="color:var(--muted)">${fmt(m.cogs)}</td>
+              <td style="color:var(--muted)">${fmt(m.fees)}</td>
+              <td style="color:var(--danger)">${fmt(m.expenses)}</td>
+              <td style="font-weight:700;color:${m.net >= 0 ? 'var(--good)' : 'var(--danger)'}">${fmt(m.net)}</td>
+            </tr>`).join('')}</tbody>
+          </table>
+        </div>
+        <!-- Mini bar chart -->
+        <div style="display:flex;align-items:flex-end;gap:8px;height:60px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+          ${months.map(m => {
+            const h = maxMonthRev > 0 ? Math.max((m.revenue / maxMonthRev) * 56, 2) : 2;
+            const col = m.net >= 0 ? 'var(--accent)' : 'var(--danger)';
+            return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+              <div style="width:100%;background:${col};height:${h}px;opacity:0.7;transition:height 0.3s"></div>
+              <div style="font-size:8px;color:var(--muted)">${m.label}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>`;
+
+  // Hide the regular report sections
+  const panel = el.closest('.panel');
+  if (panel) {
+    panel.querySelectorAll('.period-summary-grid, .period-nav, .period-section-ttl').forEach(d => d.style.display = 'none');
+    // Also hide the trend, sales, and expense sections that follow
+    const periodNav = panel.querySelector('.period-nav');
+    if (periodNav) {
+      let sibling = periodNav.nextElementSibling;
+      while (sibling && sibling.id !== 'plReportContent') {
+        sibling.style.display = 'none';
+        sibling = sibling.nextElementSibling;
+      }
+    }
+  }
 }
 
 function getPeriodBounds(mode, offset) {
@@ -6273,6 +6603,8 @@ function buildTrendRows(mode, periodStart, periodEnd) {
 function setReportMode(mode) {
   reportMode   = mode;
   reportOffset = 0;
+  const plBtn = document.getElementById('plTabBtn');
+  if (plBtn) plBtn.classList.remove('active');
   renderReports();
 }
 
