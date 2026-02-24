@@ -1900,6 +1900,15 @@ textarea { resize:vertical; min-height:70px; }
   text-align: center;
 }
 
+/* ── CONDITION TAGS ─────────────────────────────────────────────────────── */
+.cond-tag {
+  background: var(--surface2); border: 1px solid var(--border); color: var(--muted);
+  font-family: 'DM Mono', monospace; font-size: 10px; padding: 4px 10px;
+  cursor: pointer; transition: all 0.15s; user-select: none;
+}
+.cond-tag:hover { border-color: var(--border2); color: var(--text); }
+.cond-tag.active { background: rgba(87,200,255,0.1); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
 .id-error { text-align: center; padding: 24px; color: var(--danger); font-size: 13px; }
 .id-error button { margin-top: 12px; }
 
@@ -2749,7 +2758,9 @@ header::after {
     <button class="fs-btn" onclick="toggleFsPopover()" title="Adjust text size" id="fsSizeBtn">Aᴬ</button>
     <button class="fs-btn" onclick="toggleTheme()" title="Toggle light/dark theme" id="themeBtn">☀</button>
     <button class="btn-secondary" onclick="openPriceResearch()" title="Look up prices by UPC barcode">🔍 Prices</button>
-    <button class="btn-secondary" onclick="exportCSV()">↓ Export</button>
+    <button class="btn-secondary" onclick="exportAll()">↓ Export All</button>
+    <button class="btn-secondary" onclick="document.getElementById('csvImportInput').click()">↑ Import</button>
+    <input type="file" id="csvImportInput" accept=".csv,.tsv" style="display:none" onchange="importCSV(this.files[0])">
     <button class="btn-primary" id="headerIdBtn" onclick="openIdentify()" style="background:transparent;color:var(--accent);border:1px solid var(--accent);font-size:12px;padding:6px 12px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700">📸 Identify</button>
     <button class="btn-primary" id="headerBatchBtn" onclick="openBatchScan()" style="background:transparent;color:var(--accent3);border:1px solid var(--accent3);font-size:12px;padding:6px 12px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700">⚡ Batch</button>
     <button class="btn-primary" id="headerAddBtn" onclick="openAddModal()">+ Add Item</button>
@@ -2800,6 +2811,7 @@ header::after {
   <div class="stat-card c3"><div class="stat-label">Net Profit</div><div class="stat-value" id="sProfit">$0</div><div class="stat-sub" id="sMargin">avg —</div></div>
   <div class="stat-card c4"><div class="stat-label">ROI</div><div class="stat-value" id="sROI">—</div><div class="stat-sub" id="sCOGS">$0 cost basis</div></div>
   <div class="stat-card c5" onclick="goToStockAlert()" style="cursor:pointer" title="View low & out of stock items"><div class="stat-label">Low Stock</div><div class="stat-value" id="sLow">0</div><div class="stat-sub" id="sOut">0 out of stock</div></div>
+  <div class="stat-card c3"><div class="stat-label">Avg Days to Sell</div><div class="stat-value" id="sAvgDays">—</div><div class="stat-sub" id="sAvgDaysSub">from list to sold</div></div>
 </div>
 
 <!-- VIEW: DASHBOARD -->
@@ -2888,6 +2900,7 @@ header::after {
       </select>
       <div class="toolbar-spacer"></div>
       <button class="btn-secondary" onclick="printStickers(false)" style="font-size:11px;padding:5px 10px;white-space:nowrap">🏷 Print All</button>
+      <button class="btn-secondary" onclick="openTrashModal()" style="font-size:11px;padding:5px 10px;white-space:nowrap">🗑️ Trash</button>
       <span id="invCnt" style="font-size:11px;color:var(--muted);white-space:nowrap"></span>
     </div>
     <div class="bulk-bar" id="bulkBar">
@@ -3158,6 +3171,20 @@ header::after {
         <div class="edit-grp" id="d_alert_grp"><div class="edit-lbl">Low Stock Alert</div><input class="edit-inp" id="d_alert" type="number" min="0"></div>
         <div class="edit-grp"><div class="edit-lbl">Restock URL</div><input class="edit-inp" id="d_url" type="text" placeholder="Source link"></div>
         <div class="edit-grp"><div class="edit-lbl">Source</div><input class="edit-inp" id="d_source" type="text" placeholder="e.g. Goodwill" list="sourceList"></div>
+        <div class="edit-grp full">
+          <div class="edit-lbl">Condition</div>
+          <div id="d_cond_picker" style="display:flex;gap:6px;flex-wrap:wrap">
+            <button type="button" class="cond-tag" onclick="setCondTag('d','NWT',this)">NWT</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','NWOT',this)">NWOT</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','EUC',this)">EUC</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','GUC',this)">GUC</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','Fair',this)">Fair</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','Poor',this)">Poor</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','New/Sealed',this)">New/Sealed</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('d','Refurbished',this)">Refurbished</button>
+          </div>
+          <input type="hidden" id="d_condition" value="">
+        </div>
         <div class="edit-grp full"><div class="edit-lbl">Notes</div><textarea class="edit-ta" id="d_notes"></textarea></div>
       </div>
     </div>
@@ -3251,7 +3278,10 @@ header::after {
 
   </div>
   <div class="drawer-ft">
-    <button class="btn-danger" onclick="delCurrent()">Delete Item</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn-danger" onclick="delCurrent()">Delete</button>
+      <button class="btn-secondary" onclick="dupCurrent()" style="font-size:10px">⧉ Duplicate</button>
+    </div>
     <div style="display:flex;gap:10px">
       <button class="btn-secondary" onclick="closeDrawer()">Cancel</button>
       <button class="btn-primary"   onclick="saveDrawer()">Save Changes</button>
@@ -3453,7 +3483,7 @@ header::after {
 <!-- ADD MODAL -->
 <div class="overlay" id="addOv">
   <div class="modal">
-    <div class="modal-hd"><div class="modal-ttl">Add Inventory Item</div><button class="modal-x" onclick="closeAdd()">×</button></div>
+    <div class="modal-hd"><div class="modal-ttl">Add Inventory Item</div><div style="display:flex;gap:8px;align-items:center"><button class="btn-secondary" onclick="prefillFromLast()" style="font-size:10px;padding:4px 10px" title="Copy source, category, platforms from your last item">⟲ Repeat Last</button><button class="modal-x" onclick="closeAdd()">×</button></div></div>
     <div class="modal-bd">
       <div class="form-grid">
         <div class="fgrp full"><label>Item Name *</label><input type="text" id="f_name" placeholder="e.g. Vintage Levi's 501 Jeans"></div>
@@ -3511,6 +3541,20 @@ header::after {
         <div class="fgrp"><label>List Price ($) *</label><input type="number" id="f_price" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
         <div class="fgrp"><label>Fees ($)</label><input type="number" id="f_fees" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
         <div class="fgrp"><label>Shipping ($)</label><input type="number" id="f_ship" placeholder="0.00" step="0.01" oninput="prevProfit()"></div>
+        <div class="fgrp full">
+          <label>Condition</label>
+          <div id="f_cond_picker" style="display:flex;gap:6px;flex-wrap:wrap">
+            <button type="button" class="cond-tag" onclick="setCondTag('f','NWT',this)">NWT</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','NWOT',this)">NWOT</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','EUC',this)">EUC</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','GUC',this)">GUC</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','Fair',this)">Fair</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','Poor',this)">Poor</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','New/Sealed',this)">New/Sealed</button>
+            <button type="button" class="cond-tag" onclick="setCondTag('f','Refurbished',this)">Refurbished</button>
+          </div>
+          <input type="hidden" id="f_condition" value="">
+        </div>
         <div class="fgrp full"><label>Notes</label><textarea id="f_notes" placeholder="Condition, sourcing, etc."></textarea></div>
         <div class="fgrp full">
           <label style="display:flex;align-items:center;justify-content:space-between">
@@ -3701,6 +3745,23 @@ header::after {
 </div>
 
 <!-- OFFLINE BANNER -->
+
+<!-- TRASH MODAL -->
+<div class="overlay" id="trashOv">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-hd">
+      <div class="modal-ttl">🗑️ Recently Deleted</div>
+      <button class="modal-x" onclick="closeTrashModal()">×</button>
+    </div>
+    <div class="modal-bd" style="max-height:400px;overflow-y:auto">
+      <div id="trashBody"></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-danger" onclick="emptyTrash()" style="font-size:11px">Empty Trash</button>
+      <button class="btn-secondary" onclick="closeTrashModal()">Close</button>
+    </div>
+  </div>
+</div>
 <div id="offlineBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:10000;background:var(--danger);color:#fff;text-align:center;padding:6px 16px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.5px">
   ⚡ Offline — changes saved locally and will sync when you reconnect
 </div>
@@ -3750,9 +3811,13 @@ header::after {
     <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
     Breakdown
   </button>
-  <button class="bnav-more-item" onclick="exportCSV();closeBnavMore()">
+  <button class="bnav-more-item" onclick="exportAll();closeBnavMore()">
     <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-    Export CSV
+    Export All CSV
+  </button>
+  <button class="bnav-more-item" onclick="document.getElementById('csvImportInput').click();closeBnavMore()">
+    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    Import from CSV
   </button>
   <button class="bnav-more-item" onclick="toggleTheme();closeBnavMore()">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -4397,6 +4462,67 @@ function normCat(input) {
   return existing ? existing.category : trimmed;
 }
 
+// ── RECENTLY DELETED (TRASH) ──────────────────────────────────────────────
+let _trash = JSON.parse(localStorage.getItem('ft_trash') || '[]');
+
+function saveTrash() {
+  // Keep only last 30 items, max 7 days old
+  const cutoff = Date.now() - 7 * 86400000;
+  _trash = _trash.filter(t => t.deletedAt > cutoff).slice(-30);
+  try { localStorage.setItem('ft_trash', JSON.stringify(_trash)); } catch {}
+}
+
+function softDeleteItem(id) {
+  const item = inv.find(i => i.id === id);
+  if (!item) return;
+  _trash.push({ ...JSON.parse(JSON.stringify(item)), deletedAt: Date.now() });
+  saveTrash();
+  inv = inv.filter(i => i.id !== id);
+}
+
+function restoreItem(trashIdx) {
+  const item = _trash[trashIdx];
+  if (!item) return;
+  const { deletedAt, ...restored } = item;
+  inv.push(restored);
+  _trash.splice(trashIdx, 1);
+  saveTrash();
+  save(); refresh(); _sfx.create();
+  toast('Restored: ' + restored.name + ' ✓');
+  autoSync();
+}
+
+function openTrashModal() {
+  const cutoff = Date.now() - 7 * 86400000;
+  _trash = _trash.filter(t => t.deletedAt > cutoff);
+  if (!_trash.length) { toast('Trash is empty'); return; }
+
+  const list = _trash.map((item, idx) => {
+    const ago = Math.floor((Date.now() - item.deletedAt) / 60000);
+    const agoStr = ago < 60 ? ago + 'm ago' : ago < 1440 ? Math.floor(ago/60) + 'h ago' : Math.floor(ago/1440) + 'd ago';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(item.name)}</div>
+        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">${item.sku || '—'} · ${agoStr}</div>
+      </div>
+      <button onclick="restoreItem(${idx});closeTrashModal()" style="background:none;border:1px solid var(--good);color:var(--good);font-size:10px;padding:4px 10px;cursor:pointer;font-family:'DM Mono',monospace">Restore</button>
+    </div>`;
+  }).reverse().join('');
+
+  document.getElementById('trashBody').innerHTML = list;
+  document.getElementById('trashOv').classList.add('on');
+}
+
+function closeTrashModal() { document.getElementById('trashOv').classList.remove('on'); }
+
+function emptyTrash() {
+  if (!confirm('Permanently delete all ' + _trash.length + ' items?')) return;
+  _trash = [];
+  saveTrash();
+  closeTrashModal();
+  toast('Trash emptied');
+}
+
 const save = () => {
   // Try writing full data including images
   try {
@@ -4566,6 +4692,20 @@ function updateStats() {
   document.getElementById('sCOGS').textContent=fmt(cogs)+' cost basis';
   document.getElementById('sLow').textContent=low.length;
   document.getElementById('sOut').textContent=out.length+' out of stock';
+  // Avg Days to Sell — for items that have sold, compute avg(first sale date - added date)
+  const daysArr = [];
+  for (const it of inv) {
+    if (!it.added) continue;
+    const itemSales = sales.filter(s => s.itemId === it.id);
+    if (!itemSales.length) continue;
+    const firstSale = new Date(Math.min(...itemSales.map(s => new Date(s.date))));
+    const added = new Date(it.added);
+    const days = Math.max(0, Math.floor((firstSale - added) / 86400000));
+    daysArr.push(days);
+  }
+  const avgDays = daysArr.length ? Math.round(daysArr.reduce((a, d) => a + d, 0) / daysArr.length) : null;
+  document.getElementById('sAvgDays').textContent = avgDays !== null ? avgDays + 'd' : '—';
+  document.getElementById('sAvgDaysSub').textContent = daysArr.length ? `based on ${daysArr.length} sold items` : 'no sales data yet';
   // alert banner
   const all=[...out,...low.filter(x=>!out.includes(x))];
   const bn=document.getElementById('alertBanner');
@@ -5148,7 +5288,7 @@ function renderInv() {
       }</td>
       <td>
         <div class="item-name" onclick="openDrawer('${item.id}')">${item.name}</div>
-        <div class="item-meta"><span class="item-sku">${item.sku||'—'}</span>${item.upc?`<span class="upc-tag">${item.upc}</span>`:''}${item.category?`<span class="cat-tag">${item.category}</span>`:''} ${item.subcategory?`<span class="cat-tag" style="background:rgba(87,200,255,0.1);color:var(--accent)">${item.subcategory}</span>`:''} ${item.subtype?`<span class="cat-tag" style="background:rgba(123,97,255,0.15);color:var(--accent3)">${item.subtype}</span>`:''} ${item.source?`<span class="cat-tag" style="background:rgba(255,107,53,0.1);color:var(--accent2)">📍${item.source}</span>`:''}</div>
+        <div class="item-meta"><span class="item-sku">${item.sku||'—'}</span>${item.upc?`<span class="upc-tag">${item.upc}</span>`:''}${item.category?`<span class="cat-tag">${item.category}</span>`:''} ${item.subcategory?`<span class="cat-tag" style="background:rgba(87,200,255,0.1);color:var(--accent)">${item.subcategory}</span>`:''} ${item.subtype?`<span class="cat-tag" style="background:rgba(123,97,255,0.15);color:var(--accent3)">${item.subtype}</span>`:''} ${item.condition?`<span class="cat-tag" style="background:rgba(87,255,154,0.08);color:var(--good)">${item.condition}</span>`:''} ${item.source?`<span class="cat-tag" style="background:rgba(255,107,53,0.1);color:var(--accent2)">📍${item.source}</span>`:''}</div>
       </td>
       <td>${renderPlatTags(item)}</td>
       <td>
@@ -5205,7 +5345,7 @@ function toggleSel(id,cb){cb.checked?sel.add(id):sel.delete(id);cb.closest('tr')
 function toggleAll(cb){document.querySelectorAll('#invBody tr[data-id]').forEach(r=>{const id=r.dataset.id;const rc=r.querySelector('input[type=checkbox]');if(cb.checked){sel.add(id);rc.checked=true;r.classList.add('sel');}else{sel.delete(id);rc.checked=false;r.classList.remove('sel');}});syncBulk();}
 function clearSel(){sel.clear();document.getElementById('selAll').checked=false;renderInv();}
 function syncBulk(){const b=document.getElementById('bulkBar');b.classList.toggle('on',sel.size>0);document.getElementById('bulkCnt').textContent=sel.size+' selected';}
-async function bulkDel(){if(!sel.size)return;if(!confirm(`Delete ${sel.size} item(s)?`))return;const ids=[...sel];inv=inv.filter(i=>!sel.has(i.id));sel.clear();save();refresh();toast('Deleted ✓');await pushDeleteToCloud('ft_inventory',ids);autoSync();}
+async function bulkDel(){if(!sel.size)return;if(!confirm(`Delete ${sel.size} item(s)?`))return;const ids=[...sel];ids.forEach(id=>softDeleteItem(id));sel.clear();save();refresh();toast(ids.length+' item(s) deleted — check 🗑️ to restore');await pushDeleteToCloud('ft_inventory',ids);autoSync();}
 function bulkSold(){if(!sel.size)return;const ok=[...sel].filter(id=>{const it=inv.find(i=>i.id===id);return it&&it.qty>0;});if(!ok.length){toast('No sellable items selected',true);return;}if(!confirm(`Record sale for ${ok.length} item(s) at list price?`))return;const today=new Date().toISOString().split('T')[0];for(const id of ok){const it=inv.find(i=>i.id===id);sales.push({id:uid(),itemId:id,price:it.price,listPrice:it.price||0,qty:1,fees:it.fees||0,ship:it.ship||0,date:today});it.qty=Math.max(0,(it.qty||0)-1);}sel.clear();save();refresh();toast(`${ok.length} sale(s) recorded ✓`);}
 
 // SUBCATEGORY SYNC HELPERS
@@ -5299,6 +5439,7 @@ function openDrawer(id) {
   if (dBulk) { dBulk.checked = !!item.bulk; toggleBulkFields('d'); }
   buildPlatPicker('d_plat_picker', getPlatforms(item));
   renderListingStatus(item);
+  loadCondTag('d', item.condition || '');
   populateSubcatSelect('d_subcat', item.category||'', item.subcategory||'');
   populateSubtypeSelect('d_subtype', item.subcategory||'', item.subtype||'');
   renderDrawerImg(item.id);
@@ -5394,11 +5535,63 @@ function saveDrawer(){
   item.bulk    =document.getElementById('d_bulk')?.checked||false;
   item.url     =document.getElementById('d_url').value.trim();
   item.source  =document.getElementById('d_source').value.trim();
+  item.condition=document.getElementById('d_condition').value.trim();
   item.notes   =document.getElementById('d_notes').value.trim();
   Object.assign(item, getDimsFromForm('d'));
   save(); closeDrawer(); refresh(); _sfx.edit(); toast('Changes saved ✓');
 }
-async function delCurrent(){const item=inv.find(i=>i.id===activeDrawId);if(!confirm(`Delete "${item?.name}"?`))return;const id=activeDrawId;inv=inv.filter(i=>i.id!==id);save();closeDrawer();refresh();toast('Item deleted');await pushDeleteToCloud('ft_inventory',[id]);autoSync();}
+async function delCurrent(){const item=inv.find(i=>i.id===activeDrawId);if(!confirm(`Delete "${item?.name}"?`))return;const id=activeDrawId;softDeleteItem(id);save();closeDrawer();refresh();toast('Item deleted — tap Undo to restore',false,4000);await pushDeleteToCloud('ft_inventory',[id]);autoSync();}
+
+function setCondTag(prefix, value, btn) {
+  const hiddenInput = document.getElementById(prefix + '_condition');
+  const picker = document.getElementById(prefix + '_cond_picker');
+  // Toggle — clicking active tag deselects it
+  if (hiddenInput.value === value) {
+    hiddenInput.value = '';
+    btn.classList.remove('active');
+  } else {
+    hiddenInput.value = value;
+    picker.querySelectorAll('.cond-tag').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+}
+
+function loadCondTag(prefix, value) {
+  const hiddenInput = document.getElementById(prefix + '_condition');
+  const picker = document.getElementById(prefix + '_cond_picker');
+  if (!hiddenInput || !picker) return;
+  hiddenInput.value = value || '';
+  picker.querySelectorAll('.cond-tag').forEach(b => {
+    b.classList.toggle('active', b.textContent.trim() === value);
+  });
+}
+
+function dupCurrent() {
+  const item = inv.find(i => i.id === activeDrawId);
+  if (!item) return;
+  dupItem(item.id);
+  closeDrawer();
+}
+
+function dupItem(id) {
+  const src = inv.find(i => i.id === id);
+  if (!src) return;
+  const newId = uid();
+  const skuDate = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const skuCat = ((src.category||'GEN').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4)).padEnd(3,'X');
+  const skuRand = Math.random().toString(36).slice(2,5).toUpperCase();
+  const clone = {
+    ...JSON.parse(JSON.stringify(src)),
+    id: newId,
+    sku: skuCat + '-' + skuDate + '-' + skuRand,
+    added: new Date().toISOString(),
+    platformStatus: {},
+  };
+  inv.push(clone);
+  save(); refresh(); _sfx.create();
+  toast('Duplicated: ' + clone.name + ' ✓');
+  autoSync();
+}
 
 // ADD MODAL
 function openAddModal(){
@@ -5413,10 +5606,11 @@ function openAddModal(){
 }
 function closeAdd(){
   document.getElementById('addOv').classList.remove('on');
-  ['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert','f_source'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert','f_source','f_condition'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f_qty').value='1';
   const bulkCb = document.getElementById('f_bulk'); if(bulkCb) bulkCb.checked=false;
   const bulkFields = document.getElementById('f_bulk_fields'); if(bulkFields) bulkFields.style.display='none';
+  document.querySelectorAll('#f_cond_picker .cond-tag').forEach(b => b.classList.remove('active'));
   pendingAddImages=[];refreshImgSlots('f',[]);clearDimForm('f');buildPlatPicker('f_plat_picker',[]);prevProfit();
 }
 function toggleBulkFields(pfx) {
@@ -5444,6 +5638,27 @@ function prevProfit(){
   document.getElementById('pp_roi').textContent=roi!=null?pct(roi):'—';
   document.getElementById('pp_profit').style.color=pr>=0?'var(--good)':'var(--danger)';
 }
+function prefillFromLast() {
+  // Find the most recently added item
+  const sorted = [...inv].sort((a, b) => new Date(b.added || 0) - new Date(a.added || 0));
+  const last = sorted[0];
+  if (!last) { toast('No items to copy from', true); return; }
+
+  // Prefill source, category, subcategory, platforms, condition — NOT name/sku/upc/price/cost
+  const fSource = document.getElementById('f_source');
+  if (fSource && last.source) fSource.value = last.source;
+  const fCat = document.getElementById('f_cat');
+  if (fCat && last.category) { fCat.value = last.category; syncAddSubcat(); }
+  const fSubcat = document.getElementById('f_subcat_txt');
+  if (fSubcat && last.subcategory) fSubcat.value = last.subcategory;
+  if (last.condition) loadCondTag('f', last.condition);
+  // Rebuild platform picker with last item's platforms
+  const plats = getPlatforms(last);
+  if (plats.length) buildPlatPicker('f_plat_picker', plats);
+
+  toast('Prefilled from: ' + last.name);
+}
+
 function addItem(){
   const name=document.getElementById('f_name').value.trim();
   const price=parseFloat(document.getElementById('f_price').value)||0;
@@ -5460,7 +5675,7 @@ function addItem(){
   const qty = isBulk ? (parseInt(document.getElementById('f_qty').value)||1) : 1;
   const newId = uid();
   const imagesToUpload = pendingAddImages.slice(); // capture before closeAdd clears them
-  inv.push({id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:(document.getElementById('f_subcat_txt').value||'').trim(),subtype:document.getElementById('f_subtype').value||'',platform,platforms:selPlats,cost:parseFloat(document.getElementById('f_cost').value)||0,price,qty,bulk:isBulk,fees:parseFloat(document.getElementById('f_fees').value)||0,ship:parseFloat(document.getElementById('f_ship').value)||0,lowAlert:isBulk?(parseInt(document.getElementById('f_alert').value)||2):2,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),added:new Date().toISOString()});
+  inv.push({id:newId,name,sku:document.getElementById('f_sku').value.trim()||autoSku,upc:document.getElementById('f_upc').value.trim()||'',category:cat,subcategory:(document.getElementById('f_subcat_txt').value||'').trim(),subtype:document.getElementById('f_subtype').value||'',platform,platforms:selPlats,cost:parseFloat(document.getElementById('f_cost').value)||0,price,qty,bulk:isBulk,fees:parseFloat(document.getElementById('f_fees').value)||0,ship:parseFloat(document.getElementById('f_ship').value)||0,lowAlert:isBulk?(parseInt(document.getElementById('f_alert').value)||2):2,notes:document.getElementById('f_notes').value.trim(),source:document.getElementById('f_source').value.trim(),condition:document.getElementById('f_condition').value.trim(),images:imagesToUpload,image:imagesToUpload[0]||null,...getDimsFromForm('f'),added:new Date().toISOString()});
   save(); closeAdd(); refresh(); _sfx.create(); toast('Item added ✓');
 
   // Upload images to Storage in background, replace base64 with URLs
@@ -6632,7 +6847,7 @@ async function delSale(id){
 }
 
 // DELETE ITEM
-async function delItem(id){const item=inv.find(i=>i.id===id);if(!confirm(`Delete "${item?.name}"?`))return;inv=inv.filter(i=>i.id!==id);sel.delete(id);save();refresh();toast('Item deleted');await pushDeleteToCloud('ft_inventory',[id]);autoSync();}
+async function delItem(id){const item=inv.find(i=>i.id===id);if(!confirm(`Delete "${item?.name}"?`))return;softDeleteItem(id);sel.delete(id);save();refresh();toast('Item deleted — check 🗑️ to restore');await pushDeleteToCloud('ft_inventory',[id]);autoSync();}
 
 // EXPORT
 // ── BARCODES ────────────────────────────────────────────────────────────────
@@ -6891,10 +7106,158 @@ function printStickers(selectedOnly, ids) {
 }
 
 function exportCSV(){
-  const rows=[['Name','SKU','UPC','Category','Platforms','Qty','Cost','Price','Fees','Ship','Margin','Notes']];
-  for(const i of inv){const {m}=calc(i);rows.push([i.name,i.sku||'',i.upc||'',i.category||'',getPlatforms(i).join(';'),i.qty,i.cost,i.price,i.fees||0,i.ship||0,pct(m),i.notes||'']);}
+  const rows=[['Name','SKU','UPC','Category','Subcategory','Source','Condition','Platforms','Qty','Cost','Price','Fees','Ship','Margin','Notes','Added']];
+  for(const i of inv){const {m}=calc(i);rows.push([i.name,i.sku||'',i.upc||'',i.category||'',i.subcategory||'',i.source||'',i.condition||'',getPlatforms(i).join(';'),i.qty,i.cost,i.price,i.fees||0,i.ship||0,pct(m),i.notes||'',i.added||'']);}
   const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='fliptrack-inventory.csv';a.click();toast('CSV exported ✓');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='fliptrack-inventory.csv';a.click();toast('Inventory CSV exported ✓');
+}
+
+function exportSalesCSV() {
+  const rows=[['Date','Item Name','SKU','Platform','Qty','Sale Price','List Price','Fees','Shipping','Profit']];
+  for (const s of sales) {
+    const it = inv.find(i => i.id === s.itemId);
+    const pr = (s.price||0)*(s.qty||0) - (it?(it.cost||0)*(s.qty||0):0) - (s.fees||0) - (s.ship||0);
+    rows.push([s.date, it?it.name:'Deleted Item', it?it.sku:'', s.platform||'', s.qty, s.price, s.listPrice||'', s.fees||0, s.ship||0, pr.toFixed(2)]);
+  }
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='fliptrack-sales.csv';a.click();toast('Sales CSV exported ✓');
+}
+
+function exportExpensesCSV() {
+  const rows=[['Date','Category','Description','Amount']];
+  for (const e of expenses) {
+    rows.push([e.date, e.category, e.description, e.amount]);
+  }
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='fliptrack-expenses.csv';a.click();toast('Expenses CSV exported ✓');
+}
+
+function exportAll() {
+  exportCSV();
+  setTimeout(() => exportSalesCSV(), 300);
+  setTimeout(() => exportExpensesCSV(), 600);
+}
+
+function importCSV(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const text = e.target.result;
+      const sep = text.indexOf('\t') !== -1 && text.indexOf(',') === -1 ? '\t' : ',';
+      const lines = [];
+      let current = '', inQuote = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (ch === '"') { inQuote = !inQuote; current += ch; }
+        else if ((ch === '\n' || ch === '\r') && !inQuote) {
+          if (current.trim()) lines.push(current);
+          current = '';
+          if (ch === '\r' && text[i+1] === '\n') i++;
+        } else { current += ch; }
+      }
+      if (current.trim()) lines.push(current);
+
+      if (lines.length < 2) { toast('CSV appears empty', true); return; }
+
+      // Parse header
+      const parseRow = (line) => {
+        const cells = []; let cell = '', inQ = false;
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          if (c === '"') {
+            if (inQ && line[i+1] === '"') { cell += '"'; i++; }
+            else inQ = !inQ;
+          } else if (c === sep && !inQ) { cells.push(cell.trim()); cell = ''; }
+          else cell += c;
+        }
+        cells.push(cell.trim());
+        return cells;
+      };
+
+      const headers = parseRow(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+      const colMap = {};
+      // Map common header names to our fields
+      const aliases = {
+        name: ['name','title','itemname','item','productname','product'],
+        sku: ['sku','itemsku','productsku'],
+        upc: ['upc','barcode','ean','gtin'],
+        category: ['category','cat','type','department'],
+        subcategory: ['subcategory','subcat','subcategory'],
+        source: ['source','sourcedfrom','wherebought','store'],
+        condition: ['condition','cond','itemcondition'],
+        platform: ['platform','platforms','marketplace','channel'],
+        qty: ['qty','quantity','stock','units','qtyavailable'],
+        cost: ['cost','costprice','purchaseprice','cogs','buyprice','pricepaid'],
+        price: ['price','listprice','sellingprice','askingprice','listingprice','saleprice'],
+        fees: ['fees','platformfees','sellingfees'],
+        ship: ['ship','shipping','shippingcost'],
+        notes: ['notes','description','comments','memo'],
+      };
+
+      for (const [field, names] of Object.entries(aliases)) {
+        const idx = headers.findIndex(h => names.includes(h));
+        if (idx !== -1) colMap[field] = idx;
+      }
+
+      if (colMap.name === undefined) {
+        toast('CSV needs a "Name" column', true);
+        return;
+      }
+
+      let imported = 0, skipped = 0;
+      for (let r = 1; r < lines.length; r++) {
+        const row = parseRow(lines[r]);
+        const name = (row[colMap.name] || '').trim();
+        if (!name) { skipped++; continue; }
+
+        const cat = colMap.category !== undefined ? (row[colMap.category] || '').trim() : '';
+        const skuDate = new Date().toISOString().slice(0,10).replace(/-/g,'');
+        const skuCat = (cat || 'GEN').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4).padEnd(3,'X');
+        const skuRand = Math.random().toString(36).slice(2,5).toUpperCase();
+
+        const platStr = colMap.platform !== undefined ? (row[colMap.platform] || '').trim() : '';
+        const plats = platStr ? platStr.split(/[;,|]/).map(p => p.trim()).filter(Boolean) : [];
+
+        inv.push({
+          id: uid(),
+          name,
+          sku: colMap.sku !== undefined ? (row[colMap.sku] || '').trim() || (skuCat + '-' + skuDate + '-' + skuRand) : skuCat + '-' + skuDate + '-' + skuRand,
+          upc: colMap.upc !== undefined ? (row[colMap.upc] || '').trim() : '',
+          category: cat,
+          subcategory: colMap.subcategory !== undefined ? (row[colMap.subcategory] || '').trim() : '',
+          subtype: '',
+          platform: plats[0] || 'Other',
+          platforms: plats,
+          cost: colMap.cost !== undefined ? (parseFloat(row[colMap.cost]) || 0) : 0,
+          price: colMap.price !== undefined ? (parseFloat(row[colMap.price]) || 0) : 0,
+          qty: colMap.qty !== undefined ? (parseInt(row[colMap.qty]) || 1) : 1,
+          bulk: false,
+          fees: colMap.fees !== undefined ? (parseFloat(row[colMap.fees]) || 0) : 0,
+          ship: colMap.ship !== undefined ? (parseFloat(row[colMap.ship]) || 0) : 0,
+          lowAlert: 2,
+          notes: colMap.notes !== undefined ? (row[colMap.notes] || '').trim() : '',
+          source: colMap.source !== undefined ? (row[colMap.source] || '').trim() : '',
+          condition: colMap.condition !== undefined ? (row[colMap.condition] || '').trim() : '',
+          images: [],
+          image: null,
+          added: new Date().toISOString(),
+        });
+        imported++;
+      }
+
+      if (!imported) { toast('No valid rows found', true); return; }
+
+      save(); refresh(); _sfx.create();
+      toast(imported + ' item' + (imported !== 1 ? 's' : '') + ' imported ✓' + (skipped ? ' (' + skipped + ' skipped)' : ''));
+      autoSync();
+    } catch (err) {
+      toast('Import error: ' + (err.message || 'unknown'), true);
+    }
+    // Reset file input so same file can be re-imported
+    document.getElementById('csvImportInput').value = '';
+  };
+  reader.readAsText(file);
 }
 
 // REFRESH ALL
@@ -8963,6 +9326,37 @@ function batchAddAll() {
   closeBatchScan();
   autoSync();
 }
+
+// ── KEYBOARD SHORTCUTS ────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  // Don't fire in inputs/textareas
+  const tag = (e.target.tagName || '').toLowerCase();
+  const inInput = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable;
+
+  // Esc — close any open overlay/drawer/modal
+  if (e.key === 'Escape') {
+    if (document.getElementById('batchOv')?.classList.contains('on')) { closeBatchScan(); return; }
+    if (document.getElementById('scannerOv')?.classList.contains('on')) { closeScanner(); return; }
+    if (document.getElementById('drawer')?.classList.contains('on')) { closeDrawer(); return; }
+    if (document.getElementById('addOv')?.classList.contains('on')) { closeAdd(); return; }
+    if (document.getElementById('soldOv')?.classList.contains('on')) { closeSold(); return; }
+    if (document.getElementById('trashOv')?.classList.contains('on')) { closeTrashModal(); return; }
+    if (document.getElementById('idOv')?.classList.contains('on')) { closeIdentify(); return; }
+  }
+
+  // Ctrl/Cmd combos
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'n' || e.key === 'N') { e.preventDefault(); openAddModal(); return; }
+    if ((e.key === 'f' || e.key === 'F') && !inInput) {
+      e.preventDefault();
+      switchView('inventory', document.querySelectorAll('.nav-tab')[1]);
+      setTimeout(() => document.getElementById('invSearch')?.focus(), 100);
+      return;
+    }
+    if (e.key === 'e' || e.key === 'E') { e.preventDefault(); exportAll(); return; }
+    if (e.key === 'b' || e.key === 'B') { e.preventDefault(); openBatchScan(); return; }
+  }
+});
 
 // Boot auth system
 initAuth();
