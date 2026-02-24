@@ -6008,6 +6008,18 @@ function renderInsights() {
   ) : '';
 
   // ── Section: ROI Breakdown by Category/Source/Platform ──────────────────
+  // Build srcMap early (needed by both ROI Breakdown and Source Performance)
+  const srcMap = {};
+  for (const { item, revenue, profit, unitsSold } of itemStats) {
+    const src = item.source || 'Unknown';
+    if (!srcMap[src]) srcMap[src] = { revenue: 0, profit: 0, units: 0, items: 0, cost: 0 };
+    srcMap[src].revenue += revenue;
+    srcMap[src].profit += profit;
+    srcMap[src].units += unitsSold;
+    srcMap[src].items++;
+    srcMap[src].cost += (item.cost || 0) * (item.qty || 1);
+  }
+
   // Category ROI
   const catROI = Object.entries(catMap).map(([cat, d]) => {
     const catCost = inv.filter(i => (i.category || 'Uncategorized') === cat)
@@ -6140,16 +6152,7 @@ function renderInsights() {
   ) : '';
 
   // ── Section: Source Performance ────────────────────────────────────────────
-  const srcMap = {};
-  for (const { item, revenue, profit, unitsSold } of itemStats) {
-    const src = item.source || 'Unknown';
-    if (!srcMap[src]) srcMap[src] = { revenue: 0, profit: 0, units: 0, items: 0, cost: 0 };
-    srcMap[src].revenue += revenue;
-    srcMap[src].profit += profit;
-    srcMap[src].units += unitsSold;
-    srcMap[src].items++;
-    srcMap[src].cost += (item.cost || 0) * (item.qty || 1);
-  }
+  // srcMap already built above (ROI Breakdown section)
   const topSources = Object.entries(srcMap).filter(([s]) => s !== 'Unknown').sort((a, b) => b[1].profit - a[1].profit).slice(0, 6);
   const maxSrcProfit = topSources[0]?.[1]?.profit || 1;
   const sourceSection = topSources.length ? insightCard('📍', 'Source Performance',
