@@ -2165,6 +2165,22 @@ textarea { resize:vertical; min-height:70px; }
   font-family: 'DM Mono', monospace;
 }
 
+/* ── BREAKDOWN TABLET ─────────────────────────────────────────────────────── */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .bd-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .bd-cat-row,
+  .bd-sub-row,
+  .bd-col-headers {
+    grid-template-columns: 28px 1fr 80px 80px 60px 60px 70px;
+    gap: 8px;
+  }
+  .bd-col-val  { font-size: 11px; }
+  .bd-col-units { font-size: 10px; }
+}
+
 /* ── BREAKDOWN MOBILE ─────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .bd-summary-grid {
@@ -2528,7 +2544,16 @@ textarea { resize:vertical; min-height:70px; }
   .logo  { font-size: 17px; white-space: nowrap; flex-shrink: 0; }
   .date-badge { display: none; }
   .btn-secondary { display: none; } /* hide Export to save space */
-  .nav-tab { font-size: 10px; padding: 5px 8px; white-space: nowrap; }
+  .header-center {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;          /* Firefox */
+    -ms-overflow-style: none;       /* IE/Edge */
+    min-width: 0;                   /* allow flex shrinking */
+  }
+  .header-center::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+  .nav-tab { font-size: 10px; padding: 5px 8px; white-space: nowrap; flex-shrink: 0; }
   .header-right { gap: 8px; flex-shrink: 0; }
   .sync-dot-btn { padding: 4px 8px; }
   .sync-dot-lbl { display: none; } /* hide "Synced 2:34 PM" text, keep dot only */
