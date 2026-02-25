@@ -20,8 +20,11 @@
 <meta name="description" content="FlipTrack — Reseller inventory, sales, and expense tracker">
 <meta name="application-name" content="FlipTrack">
 
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"></noscript>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
@@ -301,6 +304,9 @@ body.font-dyslexic button {
 }
 .btn-danger:hover { background: rgba(255,71,87,0.18); }
 
+.btn-primary:focus, .btn-secondary:focus, .act-btn:focus, .stepper-btn:focus, .nav-tab:focus, .drawer-tab:focus { outline:2px solid var(--accent); outline-offset:2px; }
+:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+
 main { padding: 24px 32px; max-width: 1440px; margin: 0 auto; }
 
 .view { display: none; }
@@ -416,6 +422,7 @@ main { padding: 24px 32px; max-width: 1440px; margin: 0 auto; }
   text-transform:uppercase; letter-spacing:0.8px; white-space:nowrap;
 }
 .filter-chip:hover,.filter-chip.active { border-color:var(--accent); color:var(--accent); }
+.filter-chip:focus { outline:2px solid var(--accent); outline-offset:2px; }
 
 .plat-group-divider {
   font-size:9px;
@@ -851,6 +858,12 @@ main { padding: 24px 32px; max-width: 1440px; margin: 0 auto; }
 .drawer-tab-panel { position:absolute; inset:0; overflow-y:auto; padding:14px 18px 80px; display:none; }
 .drawer-tab-panel.active { display:block; }
 .drawer-ft { position:absolute; bottom:0; left:0; right:0; padding:12px 18px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:space-between; background:var(--surface2); z-index:10; }
+
+/* Drawer fullscreen on mobile */
+@media (max-width: 600px) {
+  .drawer { width: 100vw !important; min-width: unset !important; max-width: unset !important; }
+}
+
 /* Edit grid — compact */
 .edit-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
 .edit-grp  { display:flex; flex-direction:column; gap:4px; }
@@ -2490,18 +2503,23 @@ textarea { resize:vertical; min-height:70px; }
 }
 .bnav-more-backdrop.open { display: block; }
 /* Bottom nav only for phones — explicitly hide everything on larger screens */
-@media (min-width: 601px) {
+@media (min-width: 821px) {
   .bottom-nav,
   .bnav-more-popup,
   .bnav-more-backdrop { display: none !important; }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 820px) {
   .bottom-nav { display: grid; }
   main { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
   /* Hide the header Add Item button since the FAB replaces it on phone */
   #headerAddBtn { display: none; }
   #headerIdBtn { display: none; }
+}
+
+/* Tablet (600px–820px): hide header center tabs */
+@media (max-width: 820px) {
+  .header-center { display: none; }
 }
 
 /* iPad landscape / mobile landscape (820px–1100px): header has all tabs + buttons, needs to be compact */
@@ -2544,6 +2562,12 @@ body::after {
   33%  { transform: translate(20px,-10px) scale(1.04); }
   66%  { transform: translate(-10px,15px) scale(0.97); }
   100% { transform: translate(25px,  8px) scale(1.06); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::after { animation: none !important; opacity: 0.3; }
+  .stat-card, .panel { animation: none !important; }
+  * { transition-duration: 0.01ms !important; }
 }
 
 /* ── Logo — neon glow ── */
@@ -2714,7 +2738,7 @@ header::after {
   --accent2: #d45a20;
   --accent3: #5a40d9;
   --text: #1a1a2e;
-  --muted: #6b6b80;
+  --muted: #555568;
   --muted2: #50506a;
   --danger: #d93545;
   --warn: #c89500;
@@ -2779,14 +2803,14 @@ header::after {
 <header>
   <div class="logo">Flip<span>Track</span></div>
   <div class="header-center">
-    <div class="nav-tab active" onclick="switchView('dashboard',this)">Dashboard</div>
-    <div class="nav-tab" onclick="switchView('inventory',this)">Inventory</div>
-    <div class="nav-tab" onclick="switchView('sales',this)">Sales Log</div>
-    <div class="nav-tab" onclick="switchView('expenses',this)">Expenses</div>
-    <div class="nav-tab" onclick="switchView('supplies',this)">Supplies</div>
-    <div class="nav-tab" onclick="switchView('insights',this)">Insights</div>
-    <div class="nav-tab" onclick="switchView('reports',this)">Reports</div>
-    <div class="nav-tab" onclick="switchView('breakdown',this)">Value Breakdown</div>
+    <div class="nav-tab active" onclick="switchView('dashboard',this)" role="tab">Dashboard</div>
+    <div class="nav-tab" onclick="switchView('inventory',this)" role="tab">Inventory</div>
+    <div class="nav-tab" onclick="switchView('sales',this)" role="tab">Sales Log</div>
+    <div class="nav-tab" onclick="switchView('expenses',this)" role="tab">Expenses</div>
+    <div class="nav-tab" onclick="switchView('supplies',this)" role="tab">Supplies</div>
+    <div class="nav-tab" onclick="switchView('insights',this)" role="tab">Insights</div>
+    <div class="nav-tab" onclick="switchView('reports',this)" role="tab">Reports</div>
+    <div class="nav-tab" onclick="switchView('breakdown',this)" role="tab">Value Breakdown</div>
   </div>
   <div class="header-right">
     <div class="date-badge" id="currentDate"></div>
@@ -2794,15 +2818,15 @@ header::after {
       <span class="sync-dot" id="syncDot"></span>
       <span class="sync-dot-lbl" id="syncDotLbl">Signing in…</span>
     </button>
-    <button class="fs-btn" onclick="toggleFsPopover()" title="Adjust text size" id="fsSizeBtn">Aᴬ</button>
-    <button class="fs-btn" onclick="toggleTheme()" title="Toggle light/dark theme" id="themeBtn">☀</button>
-    <button class="btn-secondary" onclick="openPriceResearch()" title="Look up prices by UPC barcode">🔍 Prices</button>
-    <button class="btn-secondary" onclick="exportAll()">↓ Export All</button>
-    <button class="btn-secondary" onclick="document.getElementById('csvImportInput').click()">↑ Import</button>
+    <button class="fs-btn" onclick="toggleFsPopover()" title="Adjust text size" id="fsSizeBtn" aria-label="Font size settings">Aᴬ</button>
+    <button class="fs-btn" onclick="toggleTheme()" title="Toggle light/dark theme" id="themeBtn" aria-label="Toggle light or dark mode">☀</button>
+    <button class="btn-secondary" onclick="openPriceResearch()" title="Look up prices by UPC barcode" aria-label="Open price research">🔍 Prices</button>
+    <button class="btn-secondary" onclick="exportAll()" aria-label="Export all data as CSV">↓ Export All</button>
+    <button class="btn-secondary" onclick="document.getElementById('csvImportInput').click()" aria-label="Import CSV file">↑ Import</button>
     <input type="file" id="csvImportInput" accept=".csv,.tsv" style="display:none" onchange="importCSV(this.files[0])">
-    <button class="btn-primary" id="headerIdBtn" onclick="openIdentify()" style="background:transparent;color:var(--accent);border:1px solid var(--accent);font-size:12px;padding:6px 12px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700">📸 Identify</button>
-    <button class="btn-primary" id="headerBatchBtn" onclick="openBatchScan()" style="background:transparent;color:var(--accent3);border:1px solid var(--accent3);font-size:12px;padding:6px 12px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700">⚡ Batch</button>
-    <button class="btn-primary" id="headerAddBtn" onclick="openAddModal()">+ Add Item</button>
+    <button class="btn-primary" id="headerIdBtn" onclick="openIdentify()" style="background:transparent;color:var(--accent);border:1px solid var(--accent);font-size:12px;padding:6px 12px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700" aria-label="Snap and identify item">📸 Identify</button>
+    <button class="btn-primary" id="headerBatchBtn" onclick="openBatchScan()" style="background:transparent;color:var(--accent3);border:1px solid var(--accent3);font-size:12px;padding:6px 12px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700" aria-label="Open batch scanner">⚡ Batch</button>
+    <button class="btn-primary" id="headerAddBtn" onclick="openAddModal()" aria-label="Add new inventory item">+ Add Item</button>
   </div>
 </header>
 
@@ -2846,11 +2870,11 @@ header::after {
 <!-- STATS -->
 <div class="stats-grid">
   <div class="stat-card c1" onclick="goToBreakdown()" style="cursor:pointer" title="View inventory breakdown by category"><div class="stat-label">Inventory Value</div><div class="stat-value" id="sInvVal">$0</div><div class="stat-sub" id="sInvCnt">0 units</div></div>
-  <div class="stat-card c2"><div class="stat-label">Revenue</div><div class="stat-value" id="sRev">$0</div><div class="stat-sub" id="sRevCnt">0 sales</div></div>
-  <div class="stat-card c3"><div class="stat-label">Net Profit</div><div class="stat-value" id="sProfit">$0</div><div class="stat-sub" id="sMargin">avg —</div></div>
-  <div class="stat-card c4"><div class="stat-label">ROI</div><div class="stat-value" id="sROI">—</div><div class="stat-sub" id="sCOGS">$0 cost basis</div></div>
+  <div class="stat-card c2" title="Total revenue from all recorded sales"><div class="stat-label">Revenue</div><div class="stat-value" id="sRev">$0</div><div class="stat-sub" id="sRevCnt">0 sales</div></div>
+  <div class="stat-card c3" title="Revenue minus cost of goods, fees, and shipping"><div class="stat-label">Net Profit</div><div class="stat-value" id="sProfit">$0</div><div class="stat-sub" id="sMargin">avg —</div></div>
+  <div class="stat-card c4" title="Return on investment: profit divided by total cost"><div class="stat-label">ROI</div><div class="stat-value" id="sROI">—</div><div class="stat-sub" id="sCOGS">$0 cost basis</div></div>
   <div class="stat-card c5" onclick="goToStockAlert()" style="cursor:pointer" title="View low & out of stock items"><div class="stat-label">Low Stock</div><div class="stat-value" id="sLow">0</div><div class="stat-sub" id="sOut">0 out of stock</div></div>
-  <div class="stat-card c3"><div class="stat-label">Avg Days to Sell</div><div class="stat-value" id="sAvgDays">—</div><div class="stat-sub" id="sAvgDaysSub">from list to sold</div></div>
+  <div class="stat-card c3" title="Average time from listing to sale"><div class="stat-label">Avg Days to Sell</div><div class="stat-value" id="sAvgDays">—</div><div class="stat-sub" id="sAvgDaysSub">from list to sold</div></div>
 </div>
 
 <!-- VIEW: DASHBOARD -->
@@ -2897,7 +2921,7 @@ header::after {
     <div class="inv-toolbar">
       <div class="search-wrap">
         <span class="search-icon">⌕</span>
-        <input type="text" id="invSearch" placeholder="Search name, SKU, category…" oninput="renderInv()">
+        <input type="text" id="invSearch" placeholder="Search name, SKU, category…" oninput="_debouncedRenderInv()">
       </div>
       <button class="filter-toggle-btn" id="filterToggleBtn" onclick="toggleFilterPanel()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
@@ -2965,6 +2989,7 @@ header::after {
         </tr></thead>
         <tbody id="invBody"></tbody>
       </table>
+      <div id="invPagination"></div>
       <div id="invEmpty" class="empty-state" style="display:none">
         <div class="empty-icon">📦</div>
         <p>No items match your filters.<br>Try adjusting search or add new inventory.</p>
@@ -3162,15 +3187,15 @@ header::after {
     <div><div class="drawer-name" id="dName">Item</div><div class="drawer-sku" id="dSku"></div></div>
     <div style="display:flex;align-items:center;gap:8px">
       <button class="btn-primary" onclick="saveDrawer()" style="font-size:11px;padding:6px 14px">Save</button>
-      <button class="drawer-x" onclick="closeDrawer()">×</button>
+      <button class="drawer-x" onclick="closeDrawer()" aria-label="Close item editor">×</button>
     </div>
   </div>
   <div class="d-metrics" id="dMets"></div>
   <div class="drawer-tabs">
-    <button class="drawer-tab active" onclick="drawerTab('details',this)">Details</button>
-    <button class="drawer-tab" onclick="drawerTab('media',this)">Photo &amp; Barcode</button>
-    <button class="drawer-tab" onclick="drawerTab('shipping',this)">Shipping</button>
-    <button class="drawer-tab" onclick="drawerTab('history',this)">History</button>
+    <button class="drawer-tab active" onclick="drawerTab('details',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">Details</button>
+    <button class="drawer-tab" onclick="drawerTab('media',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">Photo &amp; Barcode</button>
+    <button class="drawer-tab" onclick="drawerTab('shipping',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">Shipping</button>
+    <button class="drawer-tab" onclick="drawerTab('history',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">History</button>
   </div>
   <div class="drawer-bd">
 
@@ -3423,6 +3448,7 @@ header::after {
     <button class="pr-lookup-btn" id="prKwBtn" onclick="lookupByKeyword()">Search →</button>
   </div>
 
+
   <div class="pr-body" id="prBody">
     <div class="pr-status">
       Scan a barcode, enter a UPC, or search by keyword to research comparable selling prices.
@@ -3558,8 +3584,13 @@ header::after {
 <!-- ADD MODAL -->
 <div class="overlay" id="addOv">
   <div class="modal">
-    <div class="modal-hd"><div class="modal-ttl">Add Inventory Item</div><div style="display:flex;gap:8px;align-items:center"><button class="btn-secondary" onclick="prefillFromLast()" style="font-size:10px;padding:4px 10px" title="Copy source, category, platforms from your last item">⟲ Repeat Last</button><button class="modal-x" onclick="closeAdd()">×</button></div></div>
+    <div class="modal-hd"><div class="modal-ttl">Add Inventory Item</div><div style="display:flex;gap:8px;align-items:center"><button class="btn-secondary" onclick="prefillFromLast()" style="font-size:10px;padding:4px 10px" title="Copy source, category, platforms from your last item">⟲ Repeat Last</button><button class="modal-x" onclick="closeAdd()" aria-label="Close add item dialog">×</button></div></div>
     <div class="modal-bd">
+      <div class="add-form-tabs" style="display:flex;gap:0;border-bottom:1px solid var(--border);margin:-20px -22px 16px;padding:0 22px">
+        <button class="add-form-tab active" onclick="addFormTab('basic',this)" style="flex:1;padding:9px 8px;background:transparent;border:none;color:var(--accent);font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;border-bottom:2px solid var(--accent)">Basic</button>
+        <button class="add-form-tab" onclick="addFormTab('pricing',this)" style="flex:1;padding:9px 8px;background:transparent;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;border-bottom:2px solid transparent">Pricing</button>
+        <button class="add-form-tab" onclick="addFormTab('details',this)" style="flex:1;padding:9px 8px;background:transparent;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;border-bottom:2px solid transparent">Details</button>
+      </div>
       <div class="form-grid">
         <div class="fgrp full"><label>Item Name *</label><input type="text" id="f_name" placeholder="e.g. Vintage Levi's 501 Jeans"></div>
         <div class="fgrp"><label>SKU / ID</label><input type="text" id="f_sku" placeholder="auto if blank"></div>
@@ -4023,6 +4054,32 @@ function setFsPreset(val) {
   document.querySelectorAll('.fs-preset').forEach(b => { if (b.textContent === map[val]) b.classList.add('active'); });
 }
 
+// ── FOCUS TRAP ──
+let _focusTrapEl = null, _focusTrigger = null;
+function trapFocus(containerSel) {
+  _focusTrigger = document.activeElement;
+  _focusTrapEl = document.querySelector(containerSel);
+  if (!_focusTrapEl) return;
+  const focusables = _focusTrapEl.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])');
+  if (focusables.length) focusables[0].focus();
+  document.addEventListener('keydown', _handleTrapKey);
+}
+function releaseFocus() {
+  document.removeEventListener('keydown', _handleTrapKey);
+  if (_focusTrigger && _focusTrigger.focus) _focusTrigger.focus();
+  _focusTrapEl = null; _focusTrigger = null;
+}
+function _handleTrapKey(e) {
+  if (!_focusTrapEl) return;
+  if (e.key === 'Escape') { releaseFocus(); closeDrawer(); closeAdd(); return; }
+  if (e.key !== 'Tab') return;
+  const focusables = _focusTrapEl.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])');
+  if (!focusables.length) return;
+  const first = focusables[0], last = focusables[focusables.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+}
+
 function setFont(font, save = true) {
   document.body.classList.toggle('font-dyslexic', font === 'dyslexic');
   document.querySelectorAll('.fs-font-opt').forEach(b => b.classList.remove('active'));
@@ -4106,6 +4163,8 @@ let expenses = JSON.parse(localStorage.getItem('ft3_exp') || '[]');
 let supplies = JSON.parse(localStorage.getItem('ft_supplies') || '[]');
 let activeDrawId = null, activeSoldId = null;
 let platFilt = new Set(), catFilt = new Set(), subcatFilt = 'all', subsubcatFilt = 'all', stockFilt = 'all', sel = new Set(), dragSrc = null;
+let _invPage = 0, _invPageSize = 50;
+let _undoStack = [];
 
 // Subcategory definitions — nested: category → subcategory → optional sub-subcategories
 const CLOTHING_TYPES = ['Shirts', 'T-Shirts', 'Pants', 'Jeans', 'Shorts', 'Jackets', 'Hoodies', 'Sweaters', 'Dresses', 'Skirts', 'Socks', 'Underwear', 'Activewear', 'Swimwear', 'Outerwear', 'Suits', 'Loungewear'];
@@ -4588,6 +4647,43 @@ function normCat(input) {
 // ── RECENTLY DELETED (TRASH) ──────────────────────────────────────────────
 let _trash = JSON.parse(localStorage.getItem('ft_trash') || '[]');
 
+// ── UNDO SYSTEM ──
+function pushUndo(action, data) {
+  _undoStack.push({ action, data, ts: Date.now() });
+  if (_undoStack.length > 20) _undoStack.shift();
+}
+function showUndoToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = '';
+  const span = document.createElement('span');
+  span.textContent = msg + ' ';
+  const btn = document.createElement('button');
+  btn.textContent = 'Undo';
+  btn.style.cssText = 'background:rgba(0,0,0,0.3);border:1px solid rgba(0,0,0,0.4);color:#fff;padding:3px 10px;margin-left:8px;cursor:pointer;font-family:Syne,sans-serif;font-weight:700;font-size:11px';
+  btn.onclick = () => { performUndo(); t.classList.remove('on'); };
+  t.appendChild(span);
+  t.appendChild(btn);
+  t.classList.remove('err');
+  t.classList.add('on');
+  setTimeout(() => t.classList.remove('on'), 8000);
+}
+function performUndo() {
+  const entry = _undoStack.pop();
+  if (!entry) { toast('Nothing to undo'); return; }
+  if (entry.action === 'delete') {
+    inv.push(entry.data);
+    save(); refresh();
+    toast('Item restored ✓');
+  } else if (entry.action === 'sold') {
+    // Restore inventory item qty and remove the sale
+    const item = inv.find(i => i.id === entry.data.itemId);
+    if (item) item.qty = (item.qty || 0) + (entry.data.qty || 1);
+    sales = sales.filter(s => s.id !== entry.data.saleId);
+    save(); refresh();
+    toast('Sale undone ✓');
+  }
+}
+
 function saveTrash() {
   // Keep only last 30 items, max 7 days old
   const cutoff = Date.now() - 7 * 86400000;
@@ -4598,9 +4694,11 @@ function saveTrash() {
 function softDeleteItem(id) {
   const item = inv.find(i => i.id === id);
   if (!item) return;
+  pushUndo('delete', {...item});
   _trash.push({ ...JSON.parse(JSON.stringify(item)), deletedAt: Date.now() });
   saveTrash();
   inv = inv.filter(i => i.id !== id);
+  showUndoToast('Item deleted');
 }
 
 function restoreItem(trashIdx) {
@@ -4646,32 +4744,41 @@ function emptyTrash() {
   toast('Trash emptied');
 }
 
+let _lastSaveOk = true;
 const save = () => {
-  // Try writing full data including images
   try {
     localStorage.setItem('ft3_inv', JSON.stringify(inv));
     localStorage.setItem('ft3_sal', JSON.stringify(sales));
     localStorage.setItem('ft3_exp', JSON.stringify(expenses));
+    _lastSaveOk = true;
   } catch(e) {
     if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e.code === 22) {
-      // localStorage is full — strip images and retry (images survive in Supabase)
       try {
         const invNoImg = inv.map(i => { const d={...i}; delete d.image; delete d.images; return d; });
         localStorage.setItem('ft3_inv', JSON.stringify(invNoImg));
         localStorage.setItem('ft3_sal', JSON.stringify(sales));
         localStorage.setItem('ft3_exp', JSON.stringify(expenses));
+        _lastSaveOk = true;
       } catch(e2) {
         console.warn('FlipTrack: localStorage full even without images:', e2.message);
+        _lastSaveOk = false;
+        toast('Storage full — changes may not persist locally', true);
       }
+    } else {
+      console.warn('FlipTrack: save error:', e.message);
+      _lastSaveOk = false;
+      toast('Save failed — changes may not persist', true);
     }
   }
-  autoSync();
+  if (_lastSaveOk) autoSync();
 };
 const fmt  = n => '$' + Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const pct  = n => (n*100).toFixed(1)+'%';
 const uid  = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 const ds   = d => new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
 const escHtml = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+const _debouncedRenderInv = debounce(() => { _invPage=0; renderInv(); }, 300);
 const PLATFORMS = [
   'eBay','Amazon','Etsy','Facebook Marketplace',
   'Depop','Poshmark','Mercari','Grailed','StockX','GOAT','Vinted','Tradesy','The RealReal','Vestiaire Collective',
@@ -4777,6 +4884,7 @@ function goToReports() {
 }
 
 function goToStockAlert() {
+  _invPage=0;
   stockFilt = 'low';
   // Switch to inventory tab
   const invTab = document.querySelectorAll('.nav-tab')[1];
@@ -4787,6 +4895,7 @@ function goToStockAlert() {
 }
 
 function clearStockFilt() {
+  _invPage=0;
   stockFilt = 'all';
   renderInv();
 }
@@ -4998,7 +5107,7 @@ function renderDash() {
   tbody.innerHTML=items.map(item=>{
     const {m}=calc(item);const c=sc(item.qty,item.lowAlert,item.bulk);
     return `<tr onclick="openDrawer('${item.id}')" style="cursor:pointer">
-      <td><div class="item-name">${item.name}</div><div class="item-meta"><span class="item-sku">${item.sku||'—'}</span>${item.upc?`<span class="upc-tag">${item.upc}</span>`:''}${item.category?`<span class="cat-tag">${item.category}</span>`:''} ${item.subcategory?`<span class="cat-tag" style="background:rgba(87,200,255,0.1);color:var(--accent)">${item.subcategory}</span>`:''} ${item.subtype?`<span class="cat-tag" style="background:rgba(123,97,255,0.15);color:var(--accent3)">${item.subtype}</span>`:''}</div></td>
+      <td><div class="item-name">${escHtml(item.name)}</div><div class="item-meta"><span class="item-sku">${escHtml(item.sku||'—')}</span>${item.upc?`<span class="upc-tag">${escHtml(item.upc)}</span>`:''}${item.category?`<span class="cat-tag">${escHtml(item.category)}</span>`:''} ${item.subcategory?`<span class="cat-tag" style="background:rgba(87,200,255,0.1);color:var(--accent)">${escHtml(item.subcategory)}</span>`:''} ${item.subtype?`<span class="cat-tag" style="background:rgba(123,97,255,0.15);color:var(--accent3)">${escHtml(item.subtype)}</span>`:''}</div></td>
       <td>${renderPlatTags(item)}</td>
       <td><span style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:${mkc(c)}">${item.qty||0}</span></td>
       <td><span class="margin-badge ${margCls(m)}">${pct(m)}</span></td>
@@ -5087,7 +5196,7 @@ function renderBreakdown() {
             return `<div class="bd-sub-row" onclick="filterToSubcat('${cat.replace(/'/g,"\\'")}','${sub.replace(/'/g,"\\'")}')">
               <div></div>
               <div>
-                <div class="bd-sub-name clickable">↳ ${sub}</div>
+                <div class="bd-sub-name clickable">↳ ${escHtml(sub)}</div>
                 <div style="font-size:9px;color:var(--muted);margin-top:2px">${sd.items} item${sd.items!==1?'s':''}</div>
                 <div class="bd-mobile-stats">
                   <span>${fmt(sd.cost)} cost</span>
@@ -5110,7 +5219,7 @@ function renderBreakdown() {
           ${hasSubs ? '›' : ''}
         </div>
         <div>
-          <div class="bd-cat-name">${cat}</div>
+          <div class="bd-cat-name">${escHtml(cat)}</div>
           <div class="bd-cat-bar-wrap" style="width:120px">
             <div class="bd-cat-bar-fill" style="width:${pct_share}%;background:${accent}"></div>
           </div>
@@ -5251,12 +5360,12 @@ function buildChips() {
   // Platform chips — show all platforms, grouped with dividers
   const inUse = new Set(inv.flatMap(i=>getPlatforms(i)).filter(Boolean));
   // Platform chips — "All" clears the set; clicking a platform toggles it
-  let platHtml = `<span class="filter-chip ${platFilt.size===0?'active':''}" onclick="setPlatFilt('all',this)">All</span>`;
+  let platHtml = `<span class="filter-chip ${platFilt.size===0?'active':''}" role="button" tabindex="0" onclick="setPlatFilt('all',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">All</span>`;
   PLATFORM_GROUPS.forEach(group => {
     platHtml += `<span class="plat-group-divider">${group.label}</span>`;
     group.items.forEach(p => {
       const dot = inUse.has(p) ? `<span class="plat-dot"></span>` : '';
-      platHtml += `<span class="filter-chip plat-chip ${platFilt.has(p)?'active':''}" onclick="setPlatFilt('${p}',this)">${dot}${p}</span>`;
+      platHtml += `<span class="filter-chip plat-chip ${platFilt.has(p)?'active':''}" role="button" tabindex="0" onclick="setPlatFilt('${p}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${dot}${p}</span>`;
     });
   });
   document.getElementById('platChips').innerHTML = platHtml;
@@ -5269,7 +5378,7 @@ function buildChips() {
   catEl.innerHTML=cats.map(c=>{
     const safe=c.replace(/'/g,"\\'");
     const isActive = c==='all' ? catFilt.size===0 : [...catFilt].some(f=>f.toLowerCase()===c.toLowerCase());
-    return `<span class="filter-chip cat-chip ${isActive?'active':''}" onclick="setCatFilt('${safe}',this)">${c==='all'?'All Categories':c}</span>`;
+    return `<span class="filter-chip cat-chip ${isActive?'active':''}" role="button" tabindex="0" onclick="setCatFilt('${safe}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${c==='all'?'All Categories':c}</span>`;
   }).join('');
 
   // hide category row if no categories set yet
@@ -5285,7 +5394,7 @@ function buildChips() {
     document.getElementById('subcatChips').innerHTML=
       ['all',...allSubs].map(s=>{
         const safe=s.replace(/'/g,"\\'");
-        return `<span class="filter-chip subcat-chip ${subcatFilt===s?'active':''}" onclick="setSubcatFilt('${safe}',this)">${s==='all'?'All':s}</span>`;
+        return `<span class="filter-chip subcat-chip ${subcatFilt===s?'active':''}" role="button" tabindex="0" onclick="setSubcatFilt('${safe}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${s==='all'?'All':s}</span>`;
       }).join('');
     subcatBar.style.display='flex';
   } else {
@@ -5303,7 +5412,7 @@ function buildChips() {
     document.getElementById('subsubcatChips').innerHTML=
       ['all',...allSubsubs].map(s=>{
         const safe=s.replace(/'/g,"\\'");
-        return `<span class="filter-chip subsubcat-chip ${subsubcatFilt===s?'active':''}" onclick="setSubsubcatFilt('${safe}',this)">${s==='all'?'All':s}</span>`;
+        return `<span class="filter-chip subsubcat-chip ${subsubcatFilt===s?'active':''}" role="button" tabindex="0" onclick="setSubsubcatFilt('${safe}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${s==='all'?'All':s}</span>`;
       }).join('');
     subsubBar.style.display='flex';
   } else {
@@ -5314,6 +5423,7 @@ function buildChips() {
 }
 
 function setPlatFilt(p, el) {
+  _invPage=0;
   if (p === 'all') {
     platFilt.clear();
   } else {
@@ -5323,6 +5433,7 @@ function setPlatFilt(p, el) {
   renderInv();
 }
 function setCatFilt(c, el) {
+  _invPage=0;
   if (c === 'all') {
     catFilt.clear();
   } else {
@@ -5335,6 +5446,7 @@ function setCatFilt(c, el) {
   renderInv();
 }
 function setSubcatFilt(s,el){
+  _invPage=0;
   subcatFilt=s;
   subsubcatFilt='all';
   document.querySelectorAll('#subcatChips .subcat-chip').forEach(x=>x.classList.remove('active'));
@@ -5342,6 +5454,7 @@ function setSubcatFilt(s,el){
   renderInv();
 }
 function setSubsubcatFilt(s,el){
+  _invPage=0;
   subsubcatFilt=s;
   document.querySelectorAll('#subsubcatChips .subsubcat-chip').forEach(x=>x.classList.remove('active'));
   el.classList.add('active');
@@ -5396,8 +5509,14 @@ function renderInv() {
   const empty=document.getElementById('invEmpty');
   if(!items.length){tbody.innerHTML='';empty.style.display='block';syncBulk();return;}
   empty.style.display='none';
+  // Pagination
+  const totalFiltered = items.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / _invPageSize));
+  if (_invPage >= totalPages) _invPage = totalPages - 1;
+  if (_invPage < 0) _invPage = 0;
+  const pageItems = items.slice(_invPage * _invPageSize, (_invPage + 1) * _invPageSize);
   const maxQ=Math.max(...inv.map(i=>i.qty||0),1);
-  tbody.innerHTML=items.map((item)=>{
+  tbody.innerHTML=pageItems.map((item)=>{
     const {cost,price,m}=calc(item);
     const c=sc(item.qty,item.lowAlert,item.bulk);
     const bp=Math.min(100,((item.qty||0)/maxQ)*100);
@@ -5406,20 +5525,20 @@ function renderInv() {
       <td class="cb-col"><input type="checkbox" ${isSel?'checked':''} onchange="toggleSel('${item.id}',this)"></td>
       <td><span class="drag-handle" draggable="true" ondragstart="dStart(event,'${item.id}')" ondragover="dOver(event)" ondrop="dDrop(event,'${item.id}')">⠿</span></td>
       <td>${(getItemImages(item)[0])
-        ? `<img class="item-thumb" src="${getItemImages(item)[0]}" alt="${item.name}" onclick="openLightbox('${item.id}')">`
+        ? `<img class="item-thumb" loading="lazy" src="${getItemImages(item)[0]}" alt="${escHtml(item.name)}" onclick="openLightbox('${item.id}')">`
         : `<div class="item-thumb-placeholder" title="Add photo" onclick="openDrawer('${item.id}')">＋</div>`
       }</td>
       <td>
-        <div class="item-name" onclick="openDrawer('${item.id}')">${item.name}</div>
-        <div class="item-meta"><span class="item-sku">${item.sku||'—'}</span>${item.upc?`<span class="upc-tag">${item.upc}</span>`:''}${item.category?`<span class="cat-tag">${item.category}</span>`:''} ${item.subcategory?`<span class="cat-tag" style="background:rgba(87,200,255,0.1);color:var(--accent)">${item.subcategory}</span>`:''} ${item.subtype?`<span class="cat-tag" style="background:rgba(123,97,255,0.15);color:var(--accent3)">${item.subtype}</span>`:''} ${item.condition?`<span class="cat-tag" style="background:rgba(87,255,154,0.08);color:var(--good)">${item.condition}</span>`:''} ${item.source?`<span class="cat-tag" style="background:rgba(255,107,53,0.1);color:var(--accent2)">📍${item.source}</span>`:''}${item.author?`<span class="book-meta-tag">✍ ${escHtml(item.author)}</span>`:''}${item.edition?`<span class="book-meta-tag">${escHtml(item.edition)} ed.</span>`:''}${item.signed?`<span class="book-meta-tag" style="background:rgba(255,215,0,0.15);color:#d4a017;border-color:rgba(255,215,0,0.3)">✒ Signed</span>`:''}</div>
+        <div class="item-name" onclick="openDrawer('${item.id}')">${escHtml(item.name)}</div>
+        <div class="item-meta"><span class="item-sku">${escHtml(item.sku||'—')}</span>${item.upc?`<span class="upc-tag">${escHtml(item.upc)}</span>`:''}${item.category?`<span class="cat-tag">${escHtml(item.category)}</span>`:''} ${item.subcategory?`<span class="cat-tag" style="background:rgba(87,200,255,0.1);color:var(--accent)">${escHtml(item.subcategory)}</span>`:''} ${item.subtype?`<span class="cat-tag" style="background:rgba(123,97,255,0.15);color:var(--accent3)">${escHtml(item.subtype)}</span>`:''} ${item.condition?`<span class="cat-tag" style="background:rgba(87,255,154,0.08);color:var(--good)">${escHtml(item.condition)}</span>`:''} ${item.source?`<span class="cat-tag" style="background:rgba(255,107,53,0.1);color:var(--accent2)">📍${escHtml(item.source)}</span>`:''}${item.author?`<span class="book-meta-tag">✍ ${escHtml(item.author)}</span>`:''}${item.edition?`<span class="book-meta-tag">${escHtml(item.edition)} ed.</span>`:''}${item.signed?`<span class="book-meta-tag" style="background:rgba(255,215,0,0.15);color:#d4a017;border-color:rgba(255,215,0,0.3)">✒ Signed</span>`:''}</div>
       </td>
       <td>${renderPlatTags(item)}</td>
       <td>
         <div class="stock-cell">
           <div class="stepper">
-            <button class="stepper-btn" onclick="adjStock('${item.id}',-1)">−</button>
-            <span class="stepper-val sv-${c}">${item.qty||0}</span>
-            <button class="stepper-btn" onclick="adjStock('${item.id}',+1)">+</button>
+            <button class="stepper-btn" aria-label="Decrease quantity" onclick="adjStock('${item.id}',-1)">−</button>
+            <span class="stepper-val sv-${c}" title="${c==='low'?'Low stock':c==='warn'?'Warning':'In stock'}">${item.qty||0}${c==='low'?' ⚠':c==='warn'?' ⚡':''}</span>
+            <button class="stepper-btn" aria-label="Increase quantity" onclick="adjStock('${item.id}',+1)">+</button>
           </div>
           <div class="mini-bar"><div class="mb-fill mf-${c}" style="width:${bp}%"></div></div>
         </div>
@@ -5435,6 +5554,26 @@ function renderInv() {
     </tr>`;
   }).join('');
   syncBulk();
+  // Render pagination
+  const pgEl = document.getElementById('invPagination');
+  if (pgEl) {
+    if (totalFiltered <= _invPageSize) { pgEl.innerHTML = ''; }
+    else {
+      pgEl.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:14px 0;font-size:12px;color:var(--muted)">
+        <button class="btn-secondary" style="padding:5px 12px;font-size:11px" onclick="_invPage=0;renderInv()" ${_invPage===0?'disabled style="opacity:0.3;padding:5px 12px;font-size:11px"':''}>«</button>
+        <button class="btn-secondary" style="padding:5px 12px;font-size:11px" onclick="_invPage--;renderInv()" ${_invPage===0?'disabled style="opacity:0.3;padding:5px 12px;font-size:11px"':''}>‹ Prev</button>
+        <span style="font-family:'Syne',sans-serif;font-weight:600">Page ${_invPage+1} of ${totalPages}</span>
+        <span style="color:var(--muted2)">(${totalFiltered} items)</span>
+        <button class="btn-secondary" style="padding:5px 12px;font-size:11px" onclick="_invPage++;renderInv()" ${_invPage>=totalPages-1?'disabled style="opacity:0.3;padding:5px 12px;font-size:11px"':''}>Next ›</button>
+        <button class="btn-secondary" style="padding:5px 12px;font-size:11px" onclick="_invPage=${totalPages-1};renderInv()" ${_invPage>=totalPages-1?'disabled style="opacity:0.3;padding:5px 12px;font-size:11px"':''}>»</button>
+        <select onchange="_invPageSize=+this.value;_invPage=0;renderInv()" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:4px 8px;font-family:'DM Mono',monospace;font-size:11px">
+          <option value="50" ${_invPageSize===50?'selected':''}>50/page</option>
+          <option value="100" ${_invPageSize===100?'selected':''}>100/page</option>
+          <option value="250" ${_invPageSize===250?'selected':''}>250/page</option>
+        </select>
+      </div>`;
+    }
+  }
 }
 
 // INLINE PRICE EDIT
@@ -5587,6 +5726,7 @@ function openDrawer(id) {
   else{sh.innerHTML=[...iSales].reverse().map(s=>{const pr=(s.price||0)*(s.qty||0)-(item.cost||0)*(s.qty||0)-(s.fees||0)-(s.ship||0);return `<div class="shi"><div><div style="font-size:12px">${fmt(s.price)} × ${s.qty}</div><div class="shi-d">${ds(s.date)}</div></div><div class="shi-p ${pr>=0?'pos':'neg'}">${fmt(pr)}</div></div>`;}).join('');}
   document.getElementById('drawerOv').classList.add('on');
   document.getElementById('drawer').classList.add('on');
+  setTimeout(() => trapFocus('#drawer'), 100);
 }
 function drawerTab(name, btn) {
   document.querySelectorAll('.drawer-tab-panel').forEach(p => p.classList.remove('active'));
@@ -5596,6 +5736,7 @@ function drawerTab(name, btn) {
 }
 
 function closeDrawer(){
+  releaseFocus();
   document.getElementById('drawerOv').classList.remove('on');
   document.getElementById('drawer').classList.remove('on');
   // Reset to Details tab for next open
@@ -5841,7 +5982,8 @@ function calcFBA(prefix) {
     </div>
     <div class="fba-winner" style="background:${fbaWins ? 'rgba(123,97,255,0.1);color:var(--accent3)' : 'rgba(87,200,255,0.1);color:var(--accent)'}">
       ${fbaWins ? '📦 FBA wins' : '📮 Self-Ship wins'} by ${fmt(Math.abs(fbaProfit - mfProfit))} per unit
-    </div>`;
+    </div>
+    <div style="margin-top:10px;padding:8px 10px;background:rgba(255,184,0,0.06);border:1px solid rgba(255,184,0,0.15);font-size:10px;color:var(--warn);font-family:'DM Mono',monospace">⚠ Fee estimates shown are for Books/Media category. Other categories (electronics, apparel, etc.) have different fee structures.</div>`;
 }
 
 function getBookFields(prefix) {
@@ -5914,6 +6056,45 @@ function dupItem(id) {
   autoSync();
 }
 
+// Tab switching for Add Item modal
+function addFormTab(tab, btn) {
+  document.querySelectorAll('.add-form-tab').forEach(b => { b.style.color='var(--muted)'; b.style.borderBottomColor='transparent'; b.classList.remove('active'); });
+  if(btn) { btn.style.color='var(--accent)'; btn.style.borderBottomColor='var(--accent)'; btn.classList.add('active'); }
+
+  // Basic fields: name, sku, upc, category, source, subcategory, subtype, platforms, bulk, quantity, alert
+  const basicIds = ['f_name','f_sku','f_upc','f_cat','f_source','f_subcat_txt','f_subtype','f_plat_picker','f_bulk','f_qty','f_alert'].map(id=>document.getElementById(id));
+  // Pricing fields: cost, price, fees, ship, condition, profit preview
+  const pricingIds = ['f_cost','f_price','f_fees','f_ship','f_condition'].map(id=>document.getElementById(id));
+  // Details fields: notes, dimensions, photos, book fields
+  const detailIds = ['f_notes','f_book_fields','fImgWrap'].map(id=>document.getElementById(id));
+
+  const showGrp = (el) => { if(el) { const grp = el.closest('.fgrp') || el.closest('.full') || el; grp.style.display=''; }};
+  const hideGrp = (el) => { if(el) { const grp = el.closest('.fgrp') || el.closest('.full') || el; grp.style.display='none'; }};
+
+  const profitPrev = document.querySelector('.profit-prev');
+  const dimSection = document.getElementById('f_dim_section');
+
+  if(tab==='basic') {
+    basicIds.forEach(showGrp);
+    pricingIds.forEach(hideGrp);
+    detailIds.forEach(hideGrp);
+    if(profitPrev) profitPrev.style.display='none';
+    if(dimSection) dimSection.style.display='none';
+  } else if(tab==='pricing') {
+    basicIds.forEach(hideGrp);
+    pricingIds.forEach(showGrp);
+    detailIds.forEach(hideGrp);
+    if(profitPrev) profitPrev.style.display='';
+    if(dimSection) dimSection.style.display='none';
+  } else {
+    basicIds.forEach(hideGrp);
+    pricingIds.forEach(hideGrp);
+    detailIds.forEach(showGrp);
+    if(profitPrev) profitPrev.style.display='none';
+    if(dimSection) dimSection.style.display='';
+  }
+}
+
 // ADD MODAL
 function openAddModal(){
   const ov = document.getElementById('addOv');
@@ -5924,8 +6105,11 @@ function openAddModal(){
   if (bd) bd.scrollTop = 0;
   const modal = ov.querySelector('.modal');
   if (modal) modal.scrollTop = 0;
+  setTimeout(() => trapFocus('#addOv .modal'), 100);
+  addFormTab('basic', document.querySelector('.add-form-tab'));
 }
 function closeAdd(){
+  releaseFocus();
   document.getElementById('addOv').classList.remove('on');
   ['f_name','f_sku','f_upc','f_cat','f_subcat_txt','f_cost','f_price','f_fees','f_ship','f_notes','f_alert','f_source','f_condition'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f_qty').value='1';
@@ -6107,14 +6291,16 @@ function recSale(){
   // Convert to per-unit price for storage (all sale records store per-unit price)
   const price = _sPriceType === 'total' ? rawPrice / qty : rawPrice;
   const platform = document.getElementById('s_platform').value || 'Other';
-  sales.push({id:uid(),itemId:activeSoldId,price,listPrice:item.price||0,qty,platform,fees:parseFloat(document.getElementById('s_fees').value)||0,ship:parseFloat(document.getElementById('s_ship').value)||0,date:document.getElementById('s_date').value||new Date().toISOString()});
+  const sale = {id:uid(),itemId:activeSoldId,price,listPrice:item.price||0,qty,platform,fees:parseFloat(document.getElementById('s_fees').value)||0,ship:parseFloat(document.getElementById('s_ship').value)||0,date:document.getElementById('s_date').value||new Date().toISOString()};
+  pushUndo('sold', { itemId: activeSoldId, qty: qty, saleId: sale.id });
+  sales.push(sale);
   item.qty-=qty;
   // Auto-mark platform as sold if item qty hits 0
   if (item.qty <= 0 && platform) {
     if (!item.platformStatus) item.platformStatus = {};
     item.platformStatus[platform] = 'sold';
   }
-  save(); closeSold(); refresh(); _sfx.sale(); toast('Sale recorded ✓');
+  save(); closeSold(); refresh(); _sfx.sale(); showUndoToast('Item marked as sold');
   // Prompt for materials used if any supplies exist
   openMaterialsModal(() => {});
 }
@@ -7622,6 +7808,7 @@ function exportAll() {
 
 function importCSV(file) {
   if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { toast('CSV too large (max 5MB)', true); return; }
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
@@ -7694,6 +7881,9 @@ function importCSV(file) {
         toast('CSV needs a "Name" column', true);
         return;
       }
+
+      const rows = lines.length - 1;
+      if (rows > 10000) { toast('Too many rows (max 10,000)', true); return; }
 
       let imported = 0, skipped = 0;
       for (let r = 1; r < lines.length; r++) {
